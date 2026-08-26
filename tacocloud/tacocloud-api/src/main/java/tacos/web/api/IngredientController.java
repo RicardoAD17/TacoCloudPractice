@@ -39,16 +39,20 @@ public class IngredientController {
   }
 
   @GetMapping("/{id}")
-  public Mono<Ingredient> byId(@PathVariable String id) {
-    return repo.findById(id);
+  public Mono<ResponseEntity<Ingredient>> byId(@PathVariable String id) {
+    return repo.findById(id).map(ingredient->ResponseEntity.ok(ingredient)).defaultIfEmpty(ResponseEntity.notFound().build());
   }
 
   @PutMapping("/{id}")
-  public void updateIngredient(@PathVariable String id, @RequestBody Ingredient ingredient) {
+  public Mono<ResponseEntity<Ingredient>> updateIngredient(@PathVariable String id,@RequestBody Ingredient ingredient) {
     if (!ingredient.getId().equals(id)) {
-      throw new IllegalStateException("Given ingredient's ID doesn't match the ID in the path.");
+      return Mono.just(new ResponseEntity<Ingredient>(HttpStatus.BAD_REQUEST));
     }
-    repo.save(ingredient);
+     return repo.findById(id).flatMap(existing->{
+      existing.setName(ingredient.getName());
+      existing.setType(ingredient.getType());
+      return repo.save(existing);
+     }).map(saved->ResponseEntity.ok(saved)).defaultIfEmpty(ResponseEntity.notFound().build());
   }
 
   @PostMapping
