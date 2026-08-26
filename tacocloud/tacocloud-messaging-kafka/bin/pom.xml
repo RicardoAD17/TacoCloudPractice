@@ -4,11 +4,11 @@
           http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<artifactId>tacocloud-messaging-noop</artifactId>
+	<artifactId>tacocloud-messaging-kafka</artifactId>
 	<packaging>jar</packaging>
 
-	<name>tacocloud-messaging-noop</name>
-	<description>Taco Cloud Messaging (NOOP)</description>
+	<name>tacocloud-messaging-kafka</name>
+	<description>Taco Cloud Messaging (Kafka)</description>
 
 	<parent>
 		<groupId>sia</groupId>
@@ -20,7 +20,6 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<java.version>11</java.version>
-		<lombok.version>1.18.30</lombok.version>
 	</properties>
 
 	<dependencies>
@@ -29,6 +28,12 @@
 			<groupId>sia</groupId>
 			<artifactId>tacocloud-domain-mongodb</artifactId>
 			<version>${tacocloud.version}</version>
+		</dependency>
+
+		<!-- Necessary Boot starters -->
+		<dependency>
+			<groupId>org.springframework.kafka</groupId>
+			<artifactId>spring-kafka</artifactId>
 		</dependency>
 
 		<!-- Lombok -->
