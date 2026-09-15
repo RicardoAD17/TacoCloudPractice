@@ -35,3 +35,6 @@ spring:
     port: 61617
     user: tacoweb
     password: l3tm31n
+  jackson:
+    deserialization:
+      FAIL_ON_UNKNOWN_PROPERTIES: true
