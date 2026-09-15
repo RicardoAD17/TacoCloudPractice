@@ -1,9 +1,6 @@
 package tacos.web.api;
 
 import java.net.URI;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -15,6 +12,9 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -28,7 +28,6 @@ public class IngredientController {
 
   private IngredientRepository repo;
 
-  @Autowired
   public IngredientController(IngredientRepository repo) {
     this.repo = repo;
   }
@@ -54,21 +53,40 @@ public class IngredientController {
       return repo.save(existing);
      }).map(saved->ResponseEntity.ok(saved)).defaultIfEmpty(ResponseEntity.notFound().build());
   }
-
-  @PostMapping
-  public Mono<ResponseEntity<Ingredient>> postIngredient(@RequestBody Mono<Ingredient> ingredient) {
-    return ingredient
-        .flatMap(repo::save)
-        .map(i -> {
-          HttpHeaders headers = new HttpHeaders();
+  /*
+  *HttpHeaders headers = new HttpHeaders();
           headers.setLocation(URI.create("http://localhost:8080/ingredients/" + i.getId()));
-          return new ResponseEntity<Ingredient>(i, headers, HttpStatus.CREATED);
-        });
+  *
+  */
+  @PostMapping(consumes = "application/json")
+  public Mono<ResponseEntity<Ingredient>> postIngredient(@RequestBody Ingredient ingredient,UriComponentsBuilder uriBuilder) {
+    if (ingredient.getId() == null || ingredient.getId().trim().isEmpty() || 
+          ingredient.getName() == null || ingredient.getName().trim().isEmpty() || 
+          ingredient.getType() == null) {
+          
+          return Mono.just(ResponseEntity.badRequest().build());
+    }
+    return repo.findById(ingredient.getId())
+        //detectar si ya existe
+        .map(existing -> ResponseEntity.badRequest().<Ingredient>build())
+        .switchIfEmpty(
+            Mono.defer(() -> repo.save(ingredient) // MonoDefer
+                .map(i -> {
+                    URI location = uriBuilder
+                            .path("/{id}").buildAndExpand(i.getId()).toUri();
+                    return ResponseEntity.created(location).body(i);
+                }))
+        );
   }
 
   @DeleteMapping("/{id}")
-  public void deleteIngredient(@PathVariable String id) {
-    repo.deleteById(id);
+  public Mono<ResponseEntity<Void>> deleteIngredient(@PathVariable String id) {
+    //el uso de .flatmap ayuda a los difetenes casos de prueba 
+    return repo.findById(id).flatMap(existing -> {
+      return repo.deleteById(id).then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)));
+    })//el id se encontro y elimino
+    .defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND)); //el id no se encontro
   }
+
 
 }
