@@ -1,4 +1,4 @@
-package tacos.web.error;
+package tacos.security.error;
 
 public class NotFoundException extends RuntimeException {
     public NotFoundException(String message){

@@ -1,4 +1,4 @@
-package tacos.web.error;
+package tacos.security.error;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

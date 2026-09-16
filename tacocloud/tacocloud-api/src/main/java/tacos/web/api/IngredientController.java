@@ -12,11 +12,11 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tacos.Ingredient;
 import tacos.data.IngredientRepository;
+import tacos.security.error.ConflictException;
+import tacos.security.error.NotFoundException;
 import tacos.web.DTO.IngredientMapper;
 import tacos.web.DTO.IngredientRequest;
 import tacos.web.DTO.IngredientResponse;
-import tacos.web.error.ConflictException;
-import tacos.web.error.NotFoundException;
 
 @RestController
 @RequestMapping(path="/api/ingredients", produces="application/json")

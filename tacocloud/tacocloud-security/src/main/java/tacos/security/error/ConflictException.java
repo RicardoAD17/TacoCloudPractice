@@ -1,4 +1,4 @@
-package tacos.web.error;
+package tacos.security.error;
 
 public class ConflictException extends RuntimeException {
     public ConflictException(String message) {

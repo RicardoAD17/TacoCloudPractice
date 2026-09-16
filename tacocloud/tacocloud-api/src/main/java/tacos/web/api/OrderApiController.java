@@ -22,11 +22,11 @@ import tacos.TacoOrder;
 import tacos.User;
 import tacos.data.OrderRepository;
 import tacos.messaging.OrderMessagingService;
+import tacos.security.error.NotFoundException;
 import tacos.web.DTO.ModificacionOrderDTO;
 import tacos.web.DTO.OrderMapper;
 import tacos.web.DTO.OrderResponse;
 import tacos.web.DTO.OrderTacoRequest;
-import tacos.web.error.NotFoundException;
 
 @RestController
 @RequestMapping(path="/api/orders", produces="application/json")

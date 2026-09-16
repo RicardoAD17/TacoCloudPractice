@@ -14,9 +14,9 @@ import tacos.TacoOrder;
 import tacos.User;
 import tacos.data.OrderRepository;
 import tacos.messaging.OrderMessagingService;
+import tacos.security.error.GlobalExceptionHandler;
 import tacos.web.DTO.ModificacionOrderDTO;
 import tacos.web.DTO.OrderMapper;
-import tacos.web.error.GlobalExceptionHandler;
 
 public class OrderTacoApiTest {
     

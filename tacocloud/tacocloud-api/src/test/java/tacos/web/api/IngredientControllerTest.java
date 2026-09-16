@@ -12,12 +12,13 @@ import org.springframework.web.reactive.BindingContext;
 import org.springframework.web.reactive.result.method.HandlerMethodArgumentResolver;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.UriComponentsBuilder;
-import tacos.web.error.GlobalExceptionHandler;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import tacos.Ingredient;
 import tacos.data.IngredientRepository;
+import tacos.security.error.GlobalExceptionHandler;
 import tacos.Ingredient.Type;
 import tacos.web.DTO.IngredientMapper;
 import tacos.web.DTO.IngredientRequest;
