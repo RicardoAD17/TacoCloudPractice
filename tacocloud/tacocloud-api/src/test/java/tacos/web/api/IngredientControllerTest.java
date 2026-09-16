@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.core.MethodParameter;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -11,7 +12,7 @@ import org.springframework.web.reactive.BindingContext;
 import org.springframework.web.reactive.result.method.HandlerMethodArgumentResolver;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.UriComponentsBuilder;
-
+import tacos.web.error.GlobalExceptionHandler;
 import static org.assertj.core.api.Assertions.assertThat;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -33,9 +34,10 @@ public class IngredientControllerTest {
     public void setup(){
       repo = Mockito.mock(IngredientRepository.class);
       mapper = new IngredientMapper();
-      controller = new IngredientController(repo, mapper); // <-- Constructor con 2 parámetros
+      controller = new IngredientController(repo, mapper); 
 
       client = WebTestClient.bindToController(controller)
+      .controllerAdvice(new GlobalExceptionHandler()) // <--- ¡Agrega esta línea aquí!
       .argumentResolvers(configurer -> configurer.addCustomResolver(new HandlerMethodArgumentResolver() {
           @Override
           public boolean supportsParameter(MethodParameter parameter) {
@@ -50,7 +52,6 @@ public class IngredientControllerTest {
       .baseUrl("/api/ingredients")
       .build();
     }
-
     @Test
     public void testUpdateIngredients_Exito() {
         Ingredient ingViejo = new Ingredient("FLTO", "Tortilla Normal", Type.WRAP);
@@ -95,12 +96,10 @@ public class IngredientControllerTest {
         Mockito.verify(repo, Mockito.never()).save(Mockito.any(Ingredient.class));
     }
 
-    @Test
+   @Test
     public void testPostIngredients_exito(){
-        // BD
         Ingredient newIngredient = new Ingredient("TOTA", "Tortilla Mini", Type.WRAP);
         
-        // Request del usuario
         IngredientRequest reqNuevo = new IngredientRequest();
         reqNuevo.setId("TOTA");
         reqNuevo.setName("Tortilla Mini");
@@ -123,10 +122,15 @@ public class IngredientControllerTest {
         IngredientRequest reqNuevo = new IngredientRequest();
         reqNuevo.setId("TOTA");
         reqNuevo.setName("Tortilla Mini");
-        reqNuevo.setType(null);
+        reqNuevo.setType(null); // Falta el Type, activa el @Valid
 
         client.post().contentType(MediaType.APPLICATION_JSON)
-        .bodyValue(reqNuevo).exchange().expectStatus().isBadRequest()
-        .expectBody().isEmpty();
+        .bodyValue(reqNuevo).exchange()
+        // ¡Validamos que devuelva 422 y que responda con el formato del escudo!
+        .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
+        .expectBody()
+        .jsonPath("$.title").isEqualTo("Error de Validación")
+        .jsonPath("$.status").isEqualTo(422)
+        .jsonPath("$.code").isEqualTo("ERR_VALIDATION_FAILED");
     }
 }

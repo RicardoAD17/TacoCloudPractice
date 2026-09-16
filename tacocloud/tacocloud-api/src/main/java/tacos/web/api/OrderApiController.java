@@ -26,25 +26,26 @@ import tacos.web.DTO.ModificacionOrderDTO;
 import tacos.web.DTO.OrderMapper;
 import tacos.web.DTO.OrderResponse;
 import tacos.web.DTO.OrderTacoRequest;
+import tacos.web.error.NotFoundException;
 
 @RestController
-@RequestMapping(path="/api/orders",
-                produces="application/json")
+@RequestMapping(path="/api/orders", produces="application/json")
 @CrossOrigin(origins="http://localhost:8080")
 public class OrderApiController {
 
-  private OrderRepository repo;
-  private OrderMessagingService orderMessages;
+  private final OrderRepository repo;
+  private final OrderMessagingService orderMessages;
   private final OrderMapper orderMapper;
-  private EmailOrderService emailOrderService;
+  private final EmailOrderService emailOrderService;
 
   public OrderApiController(OrderRepository repo,
                             OrderMessagingService orderMessages,
-                            EmailOrderService emailOrderService,OrderMapper orderMapper) {
+                            EmailOrderService emailOrderService,
+                            OrderMapper orderMapper) {
     this.repo = repo;
     this.orderMessages = orderMessages;
     this.emailOrderService = emailOrderService;
-    this.orderMapper=orderMapper;
+    this.orderMapper = orderMapper;
   }
 
   @GetMapping(produces="application/json")
@@ -52,41 +53,33 @@ public class OrderApiController {
     return repo.findAll().map(orderMapper::toResponse);
   }
 
-//  @PostMapping(consumes="application/json")
-//  @ResponseStatus(HttpStatus.CREATED)
-//  public Mono<Order> postOrder(@RequestBody Mono<Order> order) {
-//    order.subscribe(orderMessages::sendOrder); // TODO: not ideal...work into reactive flow below
-//    return order
-//        .flatMap(repo::save);
-//  }
-
   @PostMapping(consumes="application/json")
-  @ResponseStatus(HttpStatus.CREATED)
-  public Mono<OrderResponse> postOrder(@Valid @RequestBody OrderTacoRequest order) {
+  public Mono<ResponseEntity<OrderResponse>> postOrder(@Valid @RequestBody OrderTacoRequest order) {
       TacoOrder orderToSave = orderMapper.toDomain(order);
       return repo.save(orderToSave)
-                .map(savedOrder -> orderMapper.toResponse(savedOrder));
+                 .map(savedOrder -> ResponseEntity.status(HttpStatus.CREATED).body(orderMapper.toResponse(savedOrder)));
   }
 
   @PostMapping(path="fromEmail", consumes="application/json")
-  @ResponseStatus(HttpStatus.CREATED)
-  public Mono<OrderResponse> postOrderFromEmail(@RequestBody Mono<EmailOrder> emailOrder) {
+  public Mono<ResponseEntity<OrderResponse>> postOrderFromEmail(@RequestBody Mono<EmailOrder> emailOrder) {
       return emailOrderService.convertEmailOrderToDomainOrder(emailOrder)
-      .flatMap(ordenConvertida ->{
-        return repo.save(ordenConvertida).flatMap(ordenGuardada ->{
-          return Mono.fromRunnable(()->{
+      .flatMap(ordenConvertida -> {
+        return repo.save(ordenConvertida).flatMap(ordenGuardada -> {
+          return Mono.fromRunnable(() -> {
             orderMessages.sendOrder(ordenGuardada);
           }).thenReturn(ordenGuardada);
         });
       })
-      .map(ordenMapeada -> orderMapper.toResponse(ordenMapeada));
+      .map(ordenMapeada -> ResponseEntity.status(HttpStatus.CREATED).body(orderMapper.toResponse(ordenMapeada)));
   }
 
   @PutMapping(path="/{orderId}", consumes="application/json")
-  public Mono<ResponseEntity<OrderResponse>> putOrder(@RequestBody ModificacionOrderDTO order, @PathVariable("orderId") String orderId,@AuthenticationPrincipal User user) {
-    return repo.findById(orderId).flatMap(existingOrder->{
-      boolean creador= user.getId()!= null && existingOrder.getUser().getId().equals(user.getId());
-      if(!creador){
+  public Mono<ResponseEntity<OrderResponse>> putOrder(@Valid @RequestBody ModificacionOrderDTO order, 
+                                                      @PathVariable("orderId") String orderId,
+                                                      @AuthenticationPrincipal User user) {
+    return repo.findById(orderId).flatMap(existingOrder -> {
+      boolean creador = user != null && user.getId() != null && existingOrder.getUser() != null && existingOrder.getUser().getId().equals(user.getId());
+      if (!creador) {
         return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).<OrderResponse>build());
       }
       existingOrder.setDeliveryCity(order.getDeliveryCity());
@@ -94,13 +87,17 @@ public class OrderApiController {
       existingOrder.setDeliveryState(order.getDeliveryState());
       existingOrder.setDeliveryStreet(order.getDeliveryStreet());
       existingOrder.setDeliveryZip(order.getDeliveryZip());
-      return repo.save(existingOrder).map(ordenGuardada->ResponseEntity.ok(orderMapper.toResponse(ordenGuardada)));
-    }).defaultIfEmpty(ResponseEntity.notFound().<OrderResponse>build());
+      
+      return repo.save(existingOrder)
+                 .map(ordenGuardada -> ResponseEntity.ok(orderMapper.toResponse(ordenGuardada)));
+                 
+    })
+    .switchIfEmpty(Mono.error(new NotFoundException("No se encontró la orden con ID: " + orderId)));
   }
 
   @PatchMapping(path="/{orderId}", consumes="application/json")
   public Mono<ResponseEntity<OrderResponse>> patchOrder(@PathVariable("orderId") String orderId,
-                          @RequestBody ModificacionOrderDTO orderPatch) {
+                                                        @Valid @RequestBody ModificacionOrderDTO orderPatch) {
     return repo.findById(orderId)
           .map(order -> {
           if (orderPatch.getDeliveryName() != null) {
@@ -119,15 +116,17 @@ public class OrderApiController {
             order.setDeliveryZip(orderPatch.getDeliveryZip());
           }
           return order;
-        }).flatMap(repo::save).map(ordenGuardada->ResponseEntity.ok(orderMapper.toResponse(ordenGuardada))).defaultIfEmpty(ResponseEntity.notFound().<OrderResponse>build());
+        })
+        .flatMap(repo::save)
+        .map(ordenGuardada -> ResponseEntity.ok(orderMapper.toResponse(ordenGuardada)))
+        .switchIfEmpty(Mono.error(new NotFoundException("No se pudo actualizar. No se encontró la orden con ID: " + orderId)));
   }
 
   @DeleteMapping("/{orderId}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public Mono<ResponseEntity<Void>> deleteOrder(@PathVariable("orderId") String orderId) {
-    return repo.findById(orderId).flatMap(order->{
-      return Mono.just(ResponseEntity.status(204).<Void>build());
-    }).defaultIfEmpty(ResponseEntity.notFound().build());
+  public Mono<Void> deleteOrder(@PathVariable("orderId") String orderId) {
+    return repo.findById(orderId)
+        .switchIfEmpty(Mono.error(new NotFoundException("No se puede eliminar. No se encontró la orden con ID: " + orderId)))
+        .flatMap(existingOrder -> repo.deleteById(orderId));
   }
-
 }

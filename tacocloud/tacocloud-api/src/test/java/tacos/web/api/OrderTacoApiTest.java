@@ -16,6 +16,7 @@ import tacos.data.OrderRepository;
 import tacos.messaging.OrderMessagingService;
 import tacos.web.DTO.ModificacionOrderDTO;
 import tacos.web.DTO.OrderMapper;
+import tacos.web.error.GlobalExceptionHandler;
 
 public class OrderTacoApiTest {
     
@@ -37,8 +38,8 @@ public class OrderTacoApiTest {
         Mockito.when(repo.findById("123")).thenReturn(Mono.just((ordenOriginal)));
         Mockito.when(repo.save(Mockito.any())).thenAnswer(i-> Mono.just(i.getArgument(0)));
 
-        WebTestClient testClient = WebTestClient.bindToController(
-        new OrderApiController(repo, orderMessaging, emailService, orderMapper))
+       WebTestClient testClient = WebTestClient.bindToController(new OrderApiController(repo, orderMessaging, emailService, orderMapper))
+        .controllerAdvice(new GlobalExceptionHandler()) 
         .build();
         
         testClient.patch().uri("/api/orders/123").bodyValue(requestPrueba)
@@ -76,6 +77,7 @@ public class OrderTacoApiTest {
         Mockito.when(repo.save(Mockito.any(TacoOrder.class))).thenReturn(Mono.just(ordenOriginal));
         
         WebTestClient testClient = WebTestClient.bindToController(new OrderApiController(repo, orderMessaging, emailService, orderMapper))
+        .controllerAdvice(new GlobalExceptionHandler())
         .argumentResolvers(configurer -> configurer.addCustomResolver(new HandlerMethodArgumentResolver() {
             @Override
             public boolean supportsParameter(MethodParameter parameter) {
@@ -109,16 +111,27 @@ public class OrderTacoApiTest {
         requestPrueba.setDeliveryStreet("PUTPrueba1");
         requestPrueba.setDeliveryZip("67890");
         
-        OrderRepository repo = Mockito.mock(OrderRepository.class);
+       OrderRepository repo = Mockito.mock(OrderRepository.class);
         OrderMessagingService orderMessaging = Mockito.mock(OrderMessagingService.class);
         EmailOrderService emailService = Mockito.mock(EmailOrderService.class);
         OrderMapper orderMapper = new OrderMapper();
         
         Mockito.when(repo.findById("111")).thenReturn(Mono.empty());
-        Mockito.when(repo.save(Mockito.any(TacoOrder.class))).thenReturn(Mono.just(ordenOriginal));
+        User mockUser = new User("testuser", "password", "Test Name", "Street", "City", "State", "12345", "555", "test@test.com");
         
-        WebTestClient testClient = WebTestClient.bindToController(new OrderApiController(repo, orderMessaging, emailService, orderMapper)).build();
-        
+        WebTestClient testClient = WebTestClient.bindToController(new OrderApiController(repo, orderMessaging, emailService, orderMapper))
+            .controllerAdvice(new GlobalExceptionHandler())
+            .argumentResolvers(configurer -> configurer.addCustomResolver(new HandlerMethodArgumentResolver() {
+                @Override
+                public boolean supportsParameter(MethodParameter parameter) {
+                    return parameter.getParameterType().equals(User.class);
+                }
+                @Override
+                public Mono<Object> resolveArgument(MethodParameter parameter, BindingContext bindingContext, ServerWebExchange exchange) {
+                    return Mono.just(mockUser); 
+                }
+            }))
+            .build();
         testClient.put().uri("/api/orders/111").bodyValue(requestPrueba).accept(MediaType.APPLICATION_JSON).exchange().expectStatus().isNotFound();
     }
 }

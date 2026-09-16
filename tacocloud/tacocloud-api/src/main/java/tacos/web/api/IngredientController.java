@@ -1,6 +1,9 @@
 package tacos.web.api;
 
 import java.net.URI;
+
+import javax.validation.Valid;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,6 +15,8 @@ import tacos.data.IngredientRepository;
 import tacos.web.DTO.IngredientMapper;
 import tacos.web.DTO.IngredientRequest;
 import tacos.web.DTO.IngredientResponse;
+import tacos.web.error.ConflictException;
+import tacos.web.error.NotFoundException;
 
 @RestController
 @RequestMapping(path="/api/ingredients", produces="application/json")
@@ -56,7 +61,7 @@ public class IngredientController {
   }
 
   @PostMapping(consumes = "application/json")
-  public Mono<ResponseEntity<IngredientResponse>> postIngredient(@RequestBody IngredientRequest request, 
+  public Mono<ResponseEntity<IngredientResponse>> postIngredient(@Valid @RequestBody IngredientRequest request, 
                                                                  UriComponentsBuilder uriBuilder) {
     if (request.getId() == null || request.getId().trim().isEmpty() || 
         request.getName() == null || request.getName().trim().isEmpty() || 
@@ -65,7 +70,7 @@ public class IngredientController {
     }
 
     return repo.findById(request.getId())
-        .map(existing -> ResponseEntity.badRequest().<IngredientResponse>build())
+        .flatMap(existing -> Mono.<ResponseEntity<IngredientResponse>>error(new ConflictException("Ya existe un ingrediente con el ID:"+request.getId())))
         .switchIfEmpty(
             Mono.defer(() -> {
                 Ingredient ingredientToSave = mapper.toDomain(request);
@@ -84,6 +89,6 @@ public class IngredientController {
     return repo.findById(id).flatMap(existing -> {
       return repo.deleteById(id).then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)));
     })
-    .defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND)); 
+    .switchIfEmpty(Mono.error(new NotFoundException("No se puede eliminar. No se encontro el ingrediente con ID:"+id))); 
   }
 }
