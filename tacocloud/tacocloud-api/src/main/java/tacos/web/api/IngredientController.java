@@ -3,90 +3,87 @@ package tacos.web.api;
 import java.net.URI;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
-
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tacos.Ingredient;
 import tacos.data.IngredientRepository;
+import tacos.web.DTO.IngredientMapper;
+import tacos.web.DTO.IngredientRequest;
+import tacos.web.DTO.IngredientResponse;
 
 @RestController
 @RequestMapping(path="/api/ingredients", produces="application/json")
 @CrossOrigin(origins="http://localhost:8080")
 public class IngredientController {
 
-  private IngredientRepository repo;
+  private final IngredientRepository repo;
+  private final IngredientMapper mapper; 
 
-  public IngredientController(IngredientRepository repo) {
+  public IngredientController(IngredientRepository repo, IngredientMapper mapper) {
     this.repo = repo;
+    this.mapper = mapper;
   }
 
   @GetMapping
-  public Flux<Ingredient> allIngredients() {
-    return repo.findAll();
+  public Flux<IngredientResponse> allIngredients() { 
+    return repo.findAll()
+               .map(mapper::toResponse); 
   }
 
   @GetMapping("/{id}")
-  public Mono<ResponseEntity<Ingredient>> byId(@PathVariable String id) {
-    return repo.findById(id).map(ingredient->ResponseEntity.ok(ingredient)).defaultIfEmpty(ResponseEntity.notFound().build());
+  public Mono<ResponseEntity<IngredientResponse>> byId(@PathVariable String id) {
+    return repo.findById(id)
+               .map(ingredient -> ResponseEntity.ok(mapper.toResponse(ingredient))) 
+               .defaultIfEmpty(ResponseEntity.notFound().build());
   }
 
   @PutMapping("/{id}")
-  public Mono<ResponseEntity<Ingredient>> updateIngredient(@PathVariable String id,@RequestBody Ingredient ingredient) {
-    if (!ingredient.getId().equals(id)) {
-      return Mono.just(new ResponseEntity<Ingredient>(HttpStatus.BAD_REQUEST));
+  public Mono<ResponseEntity<IngredientResponse>> updateIngredient(@PathVariable String id, 
+                                                                   @RequestBody IngredientRequest request) { 
+    if (!request.getId().equals(id)) {
+      return Mono.just(ResponseEntity.badRequest().build());
     }
-     return repo.findById(id).flatMap(existing->{
-      existing.setName(ingredient.getName());
-      existing.setType(ingredient.getType());
+    
+    return repo.findById(id).flatMap(existing -> {
+      existing.setName(request.getName());
+      existing.setType(request.getType());
       return repo.save(existing);
-     }).map(saved->ResponseEntity.ok(saved)).defaultIfEmpty(ResponseEntity.notFound().build());
+    })
+    .map(saved -> ResponseEntity.ok(mapper.toResponse(saved))) 
+    .defaultIfEmpty(ResponseEntity.notFound().build());
   }
-  /*
-  *HttpHeaders headers = new HttpHeaders();
-          headers.setLocation(URI.create("http://localhost:8080/ingredients/" + i.getId()));
-  *
-  */
+
   @PostMapping(consumes = "application/json")
-  public Mono<ResponseEntity<Ingredient>> postIngredient(@RequestBody Ingredient ingredient,UriComponentsBuilder uriBuilder) {
-    if (ingredient.getId() == null || ingredient.getId().trim().isEmpty() || 
-          ingredient.getName() == null || ingredient.getName().trim().isEmpty() || 
-          ingredient.getType() == null) {
-          
-          return Mono.just(ResponseEntity.badRequest().build());
+  public Mono<ResponseEntity<IngredientResponse>> postIngredient(@RequestBody IngredientRequest request, 
+                                                                 UriComponentsBuilder uriBuilder) {
+    if (request.getId() == null || request.getId().trim().isEmpty() || 
+        request.getName() == null || request.getName().trim().isEmpty() || 
+        request.getType() == null) {
+        return Mono.just(ResponseEntity.badRequest().build());
     }
-    return repo.findById(ingredient.getId())
-        //detectar si ya existe
-        .map(existing -> ResponseEntity.badRequest().<Ingredient>build())
+
+    return repo.findById(request.getId())
+        .map(existing -> ResponseEntity.badRequest().<IngredientResponse>build())
         .switchIfEmpty(
-            Mono.defer(() -> repo.save(ingredient) // MonoDefer
-                .map(i -> {
-                    URI location = uriBuilder
-                            .path("/{id}").buildAndExpand(i.getId()).toUri();
-                    return ResponseEntity.created(location).body(i);
-                }))
+            Mono.defer(() -> {
+                Ingredient ingredientToSave = mapper.toDomain(request);
+                
+                return repo.save(ingredientToSave)
+                    .map(saved -> {
+                        URI location = uriBuilder.path("/{id}").buildAndExpand(saved.getId()).toUri();
+                        return ResponseEntity.created(location).body(mapper.toResponse(saved));
+                    });
+            })
         );
   }
 
   @DeleteMapping("/{id}")
   public Mono<ResponseEntity<Void>> deleteIngredient(@PathVariable String id) {
-    //el uso de .flatmap ayuda a los difetenes casos de prueba 
     return repo.findById(id).flatMap(existing -> {
       return repo.deleteById(id).then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)));
-    })//el id se encontro y elimino
-    .defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND)); //el id no se encontro
+    })
+    .defaultIfEmpty(new ResponseEntity<Void>(HttpStatus.NOT_FOUND)); 
   }
-
-
 }

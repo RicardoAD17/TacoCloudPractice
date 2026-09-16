@@ -48,8 +48,8 @@ public class OrderApiController {
   }
 
   @GetMapping(produces="application/json")
-  public Flux<TacoOrder> allOrders() {
-    return repo.findAll();
+  public Flux<OrderResponse> allOrders() {
+    return repo.findAll().map(orderMapper::toResponse);
   }
 
 //  @PostMapping(consumes="application/json")
@@ -70,7 +70,7 @@ public class OrderApiController {
 
   @PostMapping(path="fromEmail", consumes="application/json")
   @ResponseStatus(HttpStatus.CREATED)
-  public Mono<TacoOrder> postOrderFromEmail(@RequestBody Mono<EmailOrder> emailOrder) {
+  public Mono<OrderResponse> postOrderFromEmail(@RequestBody Mono<EmailOrder> emailOrder) {
       return emailOrderService.convertEmailOrderToDomainOrder(emailOrder)
       .flatMap(ordenConvertida ->{
         return repo.save(ordenConvertida).flatMap(ordenGuardada ->{
@@ -78,27 +78,28 @@ public class OrderApiController {
             orderMessages.sendOrder(ordenGuardada);
           }).thenReturn(ordenGuardada);
         });
-      });
+      })
+      .map(ordenMapeada -> orderMapper.toResponse(ordenMapeada));
   }
 
   @PutMapping(path="/{orderId}", consumes="application/json")
-  public Mono<ResponseEntity<TacoOrder>> putOrder(@RequestBody ModificacionOrderDTO order, @PathVariable("orderId") String orderId,@AuthenticationPrincipal User user) {
+  public Mono<ResponseEntity<OrderResponse>> putOrder(@RequestBody ModificacionOrderDTO order, @PathVariable("orderId") String orderId,@AuthenticationPrincipal User user) {
     return repo.findById(orderId).flatMap(existingOrder->{
       boolean creador= user.getId()!= null && existingOrder.getUser().getId().equals(user.getId());
       if(!creador){
-        return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).<TacoOrder>build());
+        return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).<OrderResponse>build());
       }
       existingOrder.setDeliveryCity(order.getDeliveryCity());
       existingOrder.setDeliveryName(order.getDeliveryName());
       existingOrder.setDeliveryState(order.getDeliveryState());
       existingOrder.setDeliveryStreet(order.getDeliveryStreet());
       existingOrder.setDeliveryZip(order.getDeliveryZip());
-      return repo.save(existingOrder).map(saveOrder->ResponseEntity.ok(saveOrder));
-    }).defaultIfEmpty(ResponseEntity.notFound().build());
+      return repo.save(existingOrder).map(ordenGuardada->ResponseEntity.ok(orderMapper.toResponse(ordenGuardada)));
+    }).defaultIfEmpty(ResponseEntity.notFound().<OrderResponse>build());
   }
 
   @PatchMapping(path="/{orderId}", consumes="application/json")
-  public Mono<ResponseEntity<TacoOrder>> patchOrder(@PathVariable("orderId") String orderId,
+  public Mono<ResponseEntity<OrderResponse>> patchOrder(@PathVariable("orderId") String orderId,
                           @RequestBody ModificacionOrderDTO orderPatch) {
     return repo.findById(orderId)
           .map(order -> {
@@ -118,7 +119,7 @@ public class OrderApiController {
             order.setDeliveryZip(orderPatch.getDeliveryZip());
           }
           return order;
-        }).flatMap(repo::save).map(ordenGuardada->ResponseEntity.ok(ordenGuardada)).defaultIfEmpty(ResponseEntity.notFound().build());
+        }).flatMap(repo::save).map(ordenGuardada->ResponseEntity.ok(orderMapper.toResponse(ordenGuardada))).defaultIfEmpty(ResponseEntity.notFound().<OrderResponse>build());
   }
 
   @DeleteMapping("/{orderId}")
