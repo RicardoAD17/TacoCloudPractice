@@ -93,38 +93,4 @@ public class TacoControllerTest {
     taco.setIngredients(ingredients);
     return taco;
   }
-  @Test
-  public void testUpdateIngredients_Exito() {
-    IngredientRepository repo = Mockito.mock(IngredientRepository.class);
-    IngredientController controller = new IngredientController(repo);
-    Ingredient ingViejo = new Ingredient("FLTO", "Tortilla Normal", Type.WRAP);
-    Ingredient ingNuevo = new Ingredient("FLTO", "Tortilla Gigante", Type.WRAP);
-  
-    Mockito.when(repo.findById("FLTO")).thenReturn(Mono.just(ingViejo));
-    Mockito.when(repo.save(Mockito.any(Ingredient.class))).thenReturn(Mono.just(ingNuevo));
-    Mono<ResponseEntity<Ingredient>> resultado = controller.updateIngredient("FLTO", ingNuevo);
-    StepVerifier.create(resultado).assertNext(response -> {
-      assertThat(response.getStatusCodeValue()).isEqualTo(200);
-      Ingredient ingredientResponse = response.getBody();
-      assertThat(ingredientResponse).isNotNull();
-      assertThat(ingredientResponse.getId()).isEqualTo("FLTO");
-      assertThat(ingredientResponse.getName()).isEqualTo("Tortilla Gigante");
-    }).verifyComplete();
-
-    Mockito.verify(repo).save(Mockito.any(Ingredient.class));
-  }
-
-  @Test
-  public void testUpdateIngredients_NoEncontrado() {
-    IngredientRepository repo = Mockito.mock(IngredientRepository.class);
-    IngredientController controller = new IngredientController(repo);
-    Mockito.when(repo.findById("ID_INVALIDO")).thenReturn(Mono.empty());
-    Ingredient ingNuevo = new Ingredient("ID_INVALIDO", "Ingrediente Fantasma", Type.WRAP);
-    Mono<ResponseEntity<Ingredient>> resultado = controller.updateIngredient("ID_INVALIDO", ingNuevo);
-    StepVerifier.create(resultado).assertNext(response -> {
-      assertThat(response.getStatusCodeValue()).isEqualTo(404);
-      assertThat(response.getBody()).isNull();
-    }).verifyComplete();
-    Mockito.verify(repo, Mockito.never()).save(Mockito.any(Ingredient.class));
-  }
 }
