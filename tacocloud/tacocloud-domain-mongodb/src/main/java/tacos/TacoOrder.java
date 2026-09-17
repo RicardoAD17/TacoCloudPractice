@@ -8,6 +8,8 @@ import java.util.List;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.Data;
 
 @Data
@@ -30,13 +32,8 @@ public class TacoOrder implements Serializable {
   private String deliveryState;
 
   private String deliveryZip;
-
-  private String ccNumber;
-
-  private String ccExpiration;
-
-  private String ccCVV;
-
+  @JsonIgnore
+  private String paymentToken;
 
   private List<Taco> tacos = new ArrayList<>();
 

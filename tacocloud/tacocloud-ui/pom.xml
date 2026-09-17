@@ -30,6 +30,7 @@
         <includes>
           <include>**/*</include>
         </includes>
+        <filtering>false</filtering>
       </resource>
     </resources>
 
@@ -84,12 +85,12 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <artifactId>maven-resources-plugin</artifactId>
-        <configuration>
-          <outputDirectory> ${project.build.outputDirectory}\static</outputDirectory>
-        </configuration>
-      </plugin>
+        <plugin>
+          <artifactId>maven-resources-plugin</artifactId>
+          <configuration>
+            <outputDirectory> ${project.build.outputDirectory}\static</outputDirectory>
+          </configuration>
+        </plugin>
     </plugins>
   </build>
 </project>

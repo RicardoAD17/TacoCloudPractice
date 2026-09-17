@@ -84,11 +84,11 @@ public class IngredientController {
         );
   }
 
-  @DeleteMapping("/{id}")
-  public Mono<ResponseEntity<Void>> deleteIngredient(@PathVariable String id) {
-    return repo.findById(id).flatMap(existing -> {
-      return repo.deleteById(id).then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)));
-    })
-    .switchIfEmpty(Mono.error(new NotFoundException("No se puede eliminar. No se encontro el ingrediente con ID:"+id))); 
-  }
+    @DeleteMapping("/{id}")
+    public Mono<ResponseEntity<Void>> deleteIngredient(@PathVariable String id) {
+      return repo.findById(id).flatMap(existing -> {
+        return repo.deleteById(id).then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)));
+      })
+      .switchIfEmpty(Mono.error(new NotFoundException("No se puede eliminar. No se encontro el ingrediente con ID:"+id))); 
+    }
 }

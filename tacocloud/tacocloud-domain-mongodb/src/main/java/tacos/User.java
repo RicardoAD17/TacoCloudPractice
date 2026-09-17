@@ -35,12 +35,12 @@ public class User implements UserDetails {
   private final String zip;
   private final String phoneNumber;
   private final String email;
+  private String role = "ROLE_USER";
   
-  @Override
+ @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
-    return Arrays.asList(new SimpleGrantedAuthority("ROLE_USER"));
+      return Arrays.asList(new SimpleGrantedAuthority(role));
   }
-
   @Override
   public boolean isAccountNonExpired() {
     return true;

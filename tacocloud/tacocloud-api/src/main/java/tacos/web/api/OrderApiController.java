@@ -2,6 +2,7 @@ package tacos.web.api;
 
 import javax.validation.Valid;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,11 +23,14 @@ import tacos.TacoOrder;
 import tacos.User;
 import tacos.data.OrderRepository;
 import tacos.messaging.OrderMessagingService;
+import tacos.security.error.ForbiddenException;
 import tacos.security.error.NotFoundException;
 import tacos.web.DTO.ModificacionOrderDTO;
 import tacos.web.DTO.OrderMapper;
 import tacos.web.DTO.OrderResponse;
 import tacos.web.DTO.OrderTacoRequest;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 @RestController
 @RequestMapping(path="/api/orders", produces="application/json")
@@ -49,13 +53,19 @@ public class OrderApiController {
   }
 
   @GetMapping(produces="application/json")
-  public Flux<OrderResponse> allOrders() {
-    return repo.findAll().map(orderMapper::toResponse);
+  public Flux<OrderResponse> allOrders(
+          @AuthenticationPrincipal User user) {
+
+      Pageable pageable = PageRequest.of(0, 20);
+
+      return repo.findByUserOrderByPlacedAtDesc(user, pageable)
+              .map(orderMapper::toResponse);
   }
 
   @PostMapping(consumes="application/json")
-  public Mono<ResponseEntity<OrderResponse>> postOrder(@Valid @RequestBody OrderTacoRequest order) {
+  public Mono<ResponseEntity<OrderResponse>> postOrder(@Valid @RequestBody OrderTacoRequest order,@AuthenticationPrincipal User user) {
       TacoOrder orderToSave = orderMapper.toDomain(order);
+      orderToSave.setUser(user);
       return repo.save(orderToSave)
                  .map(savedOrder -> ResponseEntity.status(HttpStatus.CREATED).body(orderMapper.toResponse(savedOrder)));
   }
@@ -78,12 +88,16 @@ public class OrderApiController {
                                                       @PathVariable("orderId") String orderId,
                                                       @AuthenticationPrincipal User user) {
     return repo.findById(orderId).flatMap(existingOrder -> {
+      boolean isAdmin= user!=null && user.getAuthorities()!=null &&  user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
       boolean creador = user != null && user.getId() != null && existingOrder.getUser() != null && existingOrder.getUser().getId().equals(user.getId());
-      if (!creador) {
+      if (!creador && !isAdmin) {
         return Mono.just(ResponseEntity.status(HttpStatus.FORBIDDEN).<OrderResponse>build());
       }
       existingOrder.setDeliveryCity(order.getDeliveryCity());
-      existingOrder.setDeliveryName(order.getDeliveryName());
+      existingOrder.
+      
+      
+      setDeliveryName(order.getDeliveryName());
       existingOrder.setDeliveryState(order.getDeliveryState());
       existingOrder.setDeliveryStreet(order.getDeliveryStreet());
       existingOrder.setDeliveryZip(order.getDeliveryZip());
@@ -97,36 +111,51 @@ public class OrderApiController {
 
   @PatchMapping(path="/{orderId}", consumes="application/json")
   public Mono<ResponseEntity<OrderResponse>> patchOrder(@PathVariable("orderId") String orderId,
-                                                        @Valid @RequestBody ModificacionOrderDTO orderPatch) {
+                                                        @Valid @RequestBody ModificacionOrderDTO orderPatch,
+                                                        @AuthenticationPrincipal User user) {
     return repo.findById(orderId)
-          .map(order -> {
+        .flatMap(existingOrder -> {
+          boolean isAdmin= user!=null && user.getAuthorities()!=null &&  user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+          boolean creador = user != null && user.getId() != null && existingOrder.getUser() != null && existingOrder.getUser().getId().equals(user.getId());
+          
+          if (!creador && !isAdmin) {
+            return Mono.<TacoOrder>error(new ForbiddenException("No tienes permisos para actualizar esta orden."));
+          }
+
           if (orderPatch.getDeliveryName() != null) {
-            order.setDeliveryName(orderPatch.getDeliveryName());
+            existingOrder.setDeliveryName(orderPatch.getDeliveryName());
           }
           if (orderPatch.getDeliveryStreet() != null) {
-            order.setDeliveryStreet(orderPatch.getDeliveryStreet());
+            existingOrder.setDeliveryStreet(orderPatch.getDeliveryStreet());
           }
           if (orderPatch.getDeliveryCity() != null) {
-            order.setDeliveryCity(orderPatch.getDeliveryCity());
+            existingOrder.setDeliveryCity(orderPatch.getDeliveryCity());
           }
           if (orderPatch.getDeliveryState() != null) {
-            order.setDeliveryState(orderPatch.getDeliveryState());
+            existingOrder.setDeliveryState(orderPatch.getDeliveryState());
           }
           if (orderPatch.getDeliveryZip() != null) {
-            order.setDeliveryZip(orderPatch.getDeliveryZip());
+            existingOrder.setDeliveryZip(orderPatch.getDeliveryZip());
           }
-          return order;
+          return repo.save(existingOrder);
         })
-        .flatMap(repo::save)
         .map(ordenGuardada -> ResponseEntity.ok(orderMapper.toResponse(ordenGuardada)))
         .switchIfEmpty(Mono.error(new NotFoundException("No se pudo actualizar. No se encontró la orden con ID: " + orderId)));
   }
-
   @DeleteMapping("/{orderId}")
-  @ResponseStatus(HttpStatus.NO_CONTENT)
-  public Mono<Void> deleteOrder(@PathVariable("orderId") String orderId) {
-    return repo.findById(orderId)
-        .switchIfEmpty(Mono.error(new NotFoundException("No se puede eliminar. No se encontró la orden con ID: " + orderId)))
-        .flatMap(existingOrder -> repo.deleteById(orderId));
-  }
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public Mono<Void> deleteOrder(@PathVariable("orderId") String orderId,
+                                  @AuthenticationPrincipal User user) {
+      return repo.findById(orderId)
+          .switchIfEmpty(Mono.error(new NotFoundException("No se puede eliminar. No se encontró la orden con ID: " + orderId)))
+          .flatMap(existingOrder -> {
+            boolean isAdmin= user!=null && user.getAuthorities()!=null &&  user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+            boolean creador = user != null && user.getId() != null && existingOrder.getUser() != null && existingOrder.getUser().getId().equals(user.getId());
+            
+            if (!creador && !isAdmin) {
+              return Mono.error(new ForbiddenException("No tienes permisos para eliminar esta orden."));
+            }
+            return repo.deleteById(orderId);
+          });
+    }
 }

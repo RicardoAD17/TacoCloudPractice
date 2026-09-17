@@ -12,6 +12,7 @@ public class OrderMapper {
         order.setDeliveryState(request.getDeliveryState());
         order.setDeliveryStreet(request.getDeliveryStreet());
         order.setDeliveryZip(request.getDeliveryZip());
+        order.setPaymentToken(request.getPaymentToken());
         return order;
     }
     public OrderResponse toResponse(TacoOrder order){

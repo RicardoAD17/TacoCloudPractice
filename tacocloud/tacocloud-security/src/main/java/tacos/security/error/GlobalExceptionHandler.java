@@ -80,12 +80,29 @@ public class GlobalExceptionHandler {
                 .type("https://taco-cloud.com/probs/internal-server-error")
                 .title("Error Interno del Servidor")
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .detail("Ha ocurrido un error inesperado. " + ex.getMessage()) // Le agrego el mensaje del error para que veas qué fallaba en los logs si vuelve a pasar
+                .detail("Ha ocurrido un error inesperado. " + ex.getMessage())
                 .instance(path)
                 .code("ERR_INTERNAL_SERVER")
                 .build();
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                             .header("Content-Type", "application/problem+json")
+                             .body(problem);
+    }
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiProblem> handleForbiddenException(ForbiddenException ex, ServerWebExchange exchange) {
+        String path = (exchange != null && exchange.getRequest() != null) ? exchange.getRequest().getPath().value() : "/unknown";
+        
+        ApiProblem problem = ApiProblem.builder()
+                .type("https://taco-cloud.com/probs/forbidden")
+                .title("Acceso Denegado")
+                .status(HttpStatus.FORBIDDEN.value())
+                .detail(ex.getMessage())
+                .instance(path)
+                .code("ERR_FORBIDDEN")
+                .build();
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
                              .header("Content-Type", "application/problem+json")
                              .body(problem);
     }

@@ -127,8 +127,11 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <!-- end::buildInfoGoal[] -->
   <!-- tag::gitCommitIdPlugin[] -->
       <plugin>
-        <groupId>pl.project13.maven</groupId>
-        <artifactId>git-commit-id-plugin</artifactId>
+          <groupId>pl.project13.maven</groupId>
+          <artifactId>git-commit-id-plugin</artifactId>
+          <configuration>
+              <skip>true</skip> <!-- Desactiva temporalmente el plugin si no necesitas los metadatos de git en local -->
+          </configuration>
       </plugin>
   <!-- end::gitCommitIdPlugin[] -->
   <!-- tag::buildInfoGoal[] -->
