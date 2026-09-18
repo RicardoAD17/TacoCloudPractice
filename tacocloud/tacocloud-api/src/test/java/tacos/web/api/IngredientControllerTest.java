@@ -55,8 +55,8 @@ public class IngredientControllerTest {
     }
     @Test
     public void testUpdateIngredients_Exito() {
-        Ingredient ingViejo = new Ingredient("FLTO", "Tortilla Normal", Type.WRAP);
-        Ingredient ingGuardado = new Ingredient("FLTO", "Tortilla Gigante", Type.WRAP);
+       Ingredient ingViejo = new Ingredient("FLTO", "Tortilla Normal", Type.WRAP, java.math.BigDecimal.ZERO, true, 0, 10, null);
+        Ingredient ingGuardado = new Ingredient("FLTO", "Tortilla Gigante", Type.WRAP, java.math.BigDecimal.ZERO, true, 0, 10, null);
         IngredientRequest reqNuevo = new IngredientRequest();
         reqNuevo.setId("FLTO");
         reqNuevo.setName("Tortilla Gigante");
@@ -99,8 +99,7 @@ public class IngredientControllerTest {
 
    @Test
     public void testPostIngredients_exito(){
-        Ingredient newIngredient = new Ingredient("TOTA", "Tortilla Mini", Type.WRAP);
-        
+        Ingredient newIngredient = new Ingredient("TOTA", "Tortilla Mini", Type.WRAP, java.math.BigDecimal.ZERO, true, 0, 10, null);
         IngredientRequest reqNuevo = new IngredientRequest();
         reqNuevo.setId("TOTA");
         reqNuevo.setName("Tortilla Mini");

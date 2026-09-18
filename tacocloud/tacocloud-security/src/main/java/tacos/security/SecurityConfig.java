@@ -38,10 +38,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         .antMatchers(HttpMethod.POST, "/api/ingredients/**").hasRole("ADMIN")
         .antMatchers(HttpMethod.PUT, "/api/ingredients/**").hasRole("ADMIN")
         .antMatchers(HttpMethod.DELETE, "/api/ingredients/**").hasRole("ADMIN")
+        .antMatchers(HttpMethod.PATCH, "/api/ingredients/**").hasRole("ADMIN")
         .antMatchers("/api/orders/**").hasAnyRole("USER", "ADMIN")
         .antMatchers("/api/payment-methods/**").hasAnyRole("USER","ADMIN") 
         .antMatchers("/api/kitchen/**").hasAnyRole("KITCHEN", "ADMIN")
-
         .antMatchers("/actuator/health").permitAll()
         .antMatchers("/actuator/**").hasRole("ADMIN")
         .antMatchers("/data-api/**").hasRole("ADMIN")

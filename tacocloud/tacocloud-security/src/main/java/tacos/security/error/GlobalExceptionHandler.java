@@ -73,22 +73,19 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiProblem> handleAllUncaughtExceptions(Exception ex, ServerWebExchange exchange) {
-        String path = (exchange != null && exchange.getRequest() != null) ? exchange.getRequest().getPath().value() : "/unknown";
-        
-        ApiProblem problem = ApiProblem.builder()
-                .type("https://taco-cloud.com/probs/internal-server-error")
-                .title("Error Interno del Servidor")
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .detail("Ha ocurrido un error inesperado. " + ex.getMessage())
-                .instance(path)
-                .code("ERR_INTERNAL_SERVER")
-                .build();
+        public ResponseEntity<ApiProblem> handleAllUncaughtExceptions(
+        Exception ex, 
+        javax.servlet.http.HttpServletRequest request) { // <-- Cambio clave compatible con Tomcat
 
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                             .header("Content-Type", "application/problem+json")
-                             .body(problem);
-    }
+        ApiProblem problem = new ApiProblem();
+        problem.setTitle("Error Interno del Servidor");
+        problem.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        problem.setDetail(ex.getMessage());
+        problem.setInstance(request.getRequestURI());
+        problem.setCode("ERR_INTERNAL_ERROR");
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
+        }
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<ApiProblem> handleForbiddenException(ForbiddenException ex, ServerWebExchange exchange) {
         String path = (exchange != null && exchange.getRequest() != null) ? exchange.getRequest().getPath().value() : "/unknown";

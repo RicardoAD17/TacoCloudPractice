@@ -48,7 +48,7 @@ public class RestExamples {
       log.info("----------------------- PUT -------------------------");
       Ingredient before = tacoCloudClient.getIngredientById("LETC");
       log.info("BEFORE:  " + before);
-      tacoCloudClient.updateIngredient(new Ingredient("LETC", "Shredded Lettuce", Ingredient.Type.VEGGIES));
+      tacoCloudClient.updateIngredient(new Ingredient("LETC", "Shredded Lettuce", Ingredient.Type.VEGGIES,java.math.BigDecimal.ZERO, true, 0, 10, null));
       Ingredient after = tacoCloudClient.getIngredientById("LETC");
       log.info("AFTER:  " + after);
     };
@@ -58,13 +58,13 @@ public class RestExamples {
   public CommandLineRunner addAnIngredient(TacoCloudClient tacoCloudClient) {
     return args -> {
       log.info("----------------------- POST -------------------------");
-      Ingredient chix = new Ingredient("CHIX", "Shredded Chicken", Ingredient.Type.PROTEIN);
+      Ingredient chix = new Ingredient("CHIX", "Shredded Chicken", Ingredient.Type.PROTEIN,java.math.BigDecimal.ZERO, true, 0, 10, null);
       Ingredient chixAfter = tacoCloudClient.createIngredient(chix);
       log.info("AFTER=1:  " + chixAfter);
-      Ingredient beefFajita = new Ingredient("BFFJ", "Beef Fajita", Ingredient.Type.PROTEIN);
+      Ingredient beefFajita = new Ingredient("BFFJ", "Beef Fajita", Ingredient.Type.PROTEIN,java.math.BigDecimal.ZERO, true, 0, 10, null);
       URI uri = tacoCloudClient.createIngredient2(beefFajita);
       log.info("AFTER-2:  " + uri);      
-      Ingredient shrimp = new Ingredient("SHMP", "Shrimp", Ingredient.Type.PROTEIN);
+      Ingredient shrimp = new Ingredient("SHMP", "Shrimp", Ingredient.Type.PROTEIN,java.math.BigDecimal.ZERO, true, 0, 10, null);
       Ingredient shrimpAfter = tacoCloudClient.createIngredient3(shrimp);
       log.info("AFTER-3:  " + shrimpAfter);      
     };

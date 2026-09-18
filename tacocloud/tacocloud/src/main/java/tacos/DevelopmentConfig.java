@@ -1,5 +1,6 @@
 package tacos;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
 
 import org.springframework.boot.CommandLineRunner;
@@ -26,27 +27,32 @@ public class DevelopmentConfig {
     return new CommandLineRunner() {
       @Override
       public void run(String... args) throws Exception {
-        Ingredient flourTortilla = saveAnIngredient("FLTO", "Flour Tortilla", Type.WRAP);
-        Ingredient cornTortilla = saveAnIngredient("COTO", "Corn Tortilla", Type.WRAP);
-        Ingredient groundBeef = saveAnIngredient("GRBF", "Ground Beef", Type.PROTEIN);
-        Ingredient carnitas = saveAnIngredient("CARN", "Carnitas", Type.PROTEIN);
-        Ingredient tomatoes = saveAnIngredient("TMTO", "Diced Tomatoes", Type.VEGGIES);
-        Ingredient lettuce = saveAnIngredient("LETC", "Lettuce", Type.VEGGIES);
-        Ingredient cheddar = saveAnIngredient("CHED", "Cheddar", Type.CHEESE);
-        Ingredient jack = saveAnIngredient("JACK", "Monterrey Jack", Type.CHEESE);
-        Ingredient salsa = saveAnIngredient("SLSA", "Salsa", Type.SAUCE);
-        Ingredient sourCream = saveAnIngredient("SRCR", "Sour Cream", Type.SAUCE);
-        
+       Ingredient flourTortilla = saveAnIngredient("FLTO", "Flour Tortilla", Type.WRAP, new java.math.BigDecimal("10.00"), 100);
+        Ingredient cornTortilla = saveAnIngredient("COTO", "Corn Tortilla", Type.WRAP, new java.math.BigDecimal("12.00"), 100);
+        Ingredient groundBeef = saveAnIngredient("GRBF", "Ground Beef", Type.PROTEIN, new java.math.BigDecimal("25.50"), 50);
+        Ingredient carnitas = saveAnIngredient("CARN", "Carnitas", Type.PROTEIN, new java.math.BigDecimal("28.00"), 40);
+        Ingredient tomatoes = saveAnIngredient("TMTO", "Diced Tomatoes", Type.VEGGIES, new java.math.BigDecimal("5.00"), 200);
+        Ingredient lettuce = saveAnIngredient("LETC", "Lettuce", Type.VEGGIES, new java.math.BigDecimal("4.50"), 200);
+        Ingredient cheddar = saveAnIngredient("CHED", "Cheddar", Type.CHEESE, new java.math.BigDecimal("8.00"), 80);
+        Ingredient jack = saveAnIngredient("JACK", "Monterrey Jack", Type.CHEESE, new java.math.BigDecimal("9.00"), 80);
+        Ingredient salsa = saveAnIngredient("SLSA", "Salsa", Type.SAUCE, new java.math.BigDecimal("3.50"), 150);
+        Ingredient sourCream = saveAnIngredient("SRCR", "Sour Cream", Type.SAUCE, new java.math.BigDecimal("4.00"), 150);        
 //        UserUDT u = new UserUDT(username, fullname, phoneNumber)
         
-        userRepo.save(new User("habuma", encoder.encode("password"), 
-              "Craig Walls", "123 North Street", "Cross Roads", "TX", 
-              "76227", "123-123-1234", "craig@habuma.com"))
-          .subscribe(user -> {
-              paymentMethodRepo.save(new PaymentMethod(user, "tok_falso_habuma_123", "VISA", "1111", "10/25")).subscribe();
-              
-          });        
-        
+        User savedUser = new User("ricardo_admin", encoder.encode("password"), 
+              "Ricardo Almada", "123 North Street", "Cross Roads", "TX", 
+              "76227", "123-123-1234", "craig@habuma.com");
+        savedUser.setRole("ROLE_USER");
+        savedUser = userRepo.save(savedUser).block();
+        User admin = new User("jefe", encoder.encode("password"), 
+              "Jefe de Tienda", "123 Admin St", "Cross Roads", "TX", 
+              "76227", "111-222-3333", "jefe@habuma.com");
+        admin.setRole("ROLE_ADMIN"); // <-- Le damos el poder
+        userRepo.save(admin).block();
+        if (savedUser != null) {
+            paymentMethodRepo.save(new PaymentMethod(savedUser, "tok_falso_habuma_123", "VISA", "1111", "10/25")).block();
+            System.out.println(" USUARIO CREADO CON ÉXITO: " + savedUser.getUsername());
+        }
         Taco taco1 = new Taco();
         taco1.setId("TACO1");
         taco1.setName("Carnivore");
@@ -67,8 +73,8 @@ public class DevelopmentConfig {
 
       }
 
-      private Ingredient saveAnIngredient(String id, String name, Type type) {
-        Ingredient ingredient = new Ingredient(id, name, type);
+      private Ingredient saveAnIngredient(String id, String name, Type type,BigDecimal unitPrice,int stockOnHand) {
+        Ingredient ingredient = new Ingredient(id, name, type,unitPrice,stockOnHand);
         repo.save(ingredient).subscribe();
         return ingredient;
       }

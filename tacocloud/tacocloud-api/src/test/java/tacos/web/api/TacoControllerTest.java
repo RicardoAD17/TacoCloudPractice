@@ -88,10 +88,8 @@ public class TacoControllerTest {
     taco.setId(number != null ? number.toString(): "TESTID");
     taco.setName("Taco " + number);
     List<Ingredient> ingredients = new ArrayList<>();
-    ingredients.add(
-        new Ingredient("INGA", "Ingredient A", Type.WRAP));
-    ingredients.add(
-        new Ingredient("INGB", "Ingredient B", Type.PROTEIN));
+    ingredients.add(new Ingredient("INGA", "Ingredient A", Type.WRAP, java.math.BigDecimal.ZERO, true, 0, 10, null));
+    ingredients.add(new Ingredient("INGB", "Ingredient B", Type.PROTEIN, java.math.BigDecimal.ZERO, true, 0, 10, null));
     taco.setIngredients(ingredients);
     return taco;
   }

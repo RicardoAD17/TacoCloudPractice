@@ -66,8 +66,9 @@ public class OrderApiController {
   public Mono<ResponseEntity<OrderResponse>> postOrder(@Valid @RequestBody OrderTacoRequest order,@AuthenticationPrincipal User user) {
       TacoOrder orderToSave = orderMapper.toDomain(order);
       orderToSave.setUser(user);
+      orderToSave.setPaymentToken(order.getPaymentToken()); 
       return repo.save(orderToSave)
-                 .map(savedOrder -> ResponseEntity.status(HttpStatus.CREATED).body(orderMapper.toResponse(savedOrder)));
+                .map(savedOrder -> ResponseEntity.status(HttpStatus.CREATED).body(orderMapper.toResponse(savedOrder)));
   }
 
   @PostMapping(path="fromEmail", consumes="application/json")

@@ -99,3 +99,4 @@ spring:
 logging:
   level:
     tacos: WARN
+    org.springframework.security: DEBUG

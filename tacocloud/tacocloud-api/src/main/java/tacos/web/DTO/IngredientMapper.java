@@ -6,8 +6,17 @@ import tacos.Ingredient;
 @Component
 public class IngredientMapper {
 
-    public Ingredient toDomain(IngredientRequest request) {
-        return new Ingredient(request.getId(), request.getName(), request.getType());
+public Ingredient toDomain(IngredientRequest request) {
+        return new Ingredient(
+            request.getId(), 
+            request.getName(), 
+            request.getType(), 
+            java.math.BigDecimal.ZERO, 
+            true, 
+            0, 
+            10, 
+            null
+        );
     }
 
     public IngredientResponse toResponse(Ingredient entity) {

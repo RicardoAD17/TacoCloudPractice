@@ -14,9 +14,11 @@ import tacos.Ingredient;
 import tacos.data.IngredientRepository;
 import tacos.security.error.ConflictException;
 import tacos.security.error.NotFoundException;
+import tacos.web.DTO.IngredientCatalogoUpdateRequest;
 import tacos.web.DTO.IngredientMapper;
 import tacos.web.DTO.IngredientRequest;
 import tacos.web.DTO.IngredientResponse;
+import tacos.web.DTO.StockAdjustmentRequest;
 
 @RestController
 @RequestMapping(path="/api/ingredients", produces="application/json")
@@ -91,4 +93,51 @@ public class IngredientController {
       })
       .switchIfEmpty(Mono.error(new NotFoundException("No se puede eliminar. No se encontro el ingrediente con ID:"+id))); 
     }
+  // TC-13: Actualizar precio y disponibilidad del catálogo (Solo ADMIN)
+  @PatchMapping(path = "/admin/{id}/catalog", consumes = "application/json")
+  public Mono<ResponseEntity<IngredientResponse>> updateCatalog(
+      @PathVariable("id") String id,
+      @Valid @RequestBody IngredientCatalogoUpdateRequest request) {
+      
+    return repo.findById(id)
+        .flatMap(ingredient -> {
+          // Actualizamos solo si mandan el valor
+          if (request.getUnitPrice() != null) {
+            ingredient.setUnitPrice(request.getUnitPrice());
+          }
+          if (request.getAvailable() != null) {
+            ingredient.setAvailable(request.getAvailable());
+          }
+          return repo.save(ingredient);
+        })
+        .map(saved -> ResponseEntity.ok(mapper.toResponse(saved)))
+        .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+  }
+
+  @PostMapping(path = "/admin/{id}/stock-adjustments", consumes = "application/json")
+  public Mono<ResponseEntity<IngredientResponse>> adjustStock(
+      @PathVariable("id") String id,
+      @Valid @RequestBody StockAdjustmentRequest request) {
+      
+    return repo.findById(id)
+        .flatMap(ingredient -> {
+          int nuevoStock = ingredient.getStockOnHand() + request.getAdjustmentQuantity();
+          
+          if (nuevoStock < 0) {
+            return Mono.error(new IllegalArgumentException("El ajuste provocaría existencias negativas"));
+          }
+          
+          ingredient.setStockOnHand(nuevoStock);
+          if (nuevoStock == 0) {
+            ingredient.setAvailable(false);
+          } else if (!ingredient.isAvailable() && nuevoStock > 0) {
+          
+            ingredient.setAvailable(true); 
+          }
+          
+          return repo.save(ingredient);
+        })
+        .map(saved -> ResponseEntity.ok(mapper.toResponse(saved)))
+        .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+  }
 }

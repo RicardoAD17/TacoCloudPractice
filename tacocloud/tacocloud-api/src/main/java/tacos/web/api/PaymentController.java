@@ -16,12 +16,13 @@ import tacos.web.DTO.TokenResponse;
 @RequestMapping(path = "/api/payment-methods", produces = MediaType.APPLICATION_JSON_VALUE)
 public class PaymentController {
     private final PaymentGateway paymentGateway;
-    public PaymentController(PaymentGateway paymentGateway){
-        this.paymentGateway=paymentGateway;
+public PaymentController(PaymentGateway paymentGateway){
+        this.paymentGateway = paymentGateway;
     }
+    
     @PostMapping(path = "/tokenize", consumes = MediaType.APPLICATION_JSON_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
-    public Mono<TokenResponse> tokenizePayment(@RequestBody Mono<TokenRequest> tokenRequest) {
-        return tokenRequest.flatMap(paymentGateway::tokenize);
+    public Mono<TokenResponse> tokenizePayment(@RequestBody TokenRequest tokenRequest) {
+        return paymentGateway.tokenize(tokenRequest);
     }
 }

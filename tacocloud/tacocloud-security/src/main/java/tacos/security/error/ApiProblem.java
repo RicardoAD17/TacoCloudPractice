@@ -8,9 +8,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
+@Builder 
 @Getter
 @Setter
-@Builder
 @JsonInclude
 public class ApiProblem {
     private String type;
