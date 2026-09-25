@@ -1,5 +1,6 @@
 package tacos;
 
+import java.time.Clock;
 import java.util.Collections;
 import java.util.Map;
 
@@ -30,6 +31,10 @@ public class TacoCloudApplication {
                       : null;
           }
       };
+  }
+  @Bean
+  public Clock clock() {
+      return Clock.systemDefaultZone();
   }
 
 }

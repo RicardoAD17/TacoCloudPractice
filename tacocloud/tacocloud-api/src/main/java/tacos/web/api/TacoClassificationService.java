@@ -23,8 +23,6 @@ public class TacoClassificationService {
             taco.setSpiceLevel(SpiceLevel.NONE);
             return;
         }
-
-        // Asumimos que es 100% puro al inicio...
         boolean isVegan = true;
         boolean isVegetarian = true;
         boolean isGlutenFree = true;
@@ -32,20 +30,16 @@ public class TacoClassificationService {
         Set<Allergen> tacoAllergens = new HashSet<>();
         int maxSpiceRank = 0;
 
-        // ... y evaluamos cada ingrediente para ver si lo arruina
         for (Ingredient ing : taco.getIngredients()) {
             
-            // Regla: Si un solo ingrediente no es vegano, el taco ya no es vegano.
+           
             if (!ing.isVegan()) isVegan = false;
             if (!ing.isVegetarian()) isVegetarian = false;
             if (!ing.isGlutenFree()) isGlutenFree = false;
 
-            // Regla: Los alérgenos se unen (Set Union)
             if (ing.getAllergens() != null) {
                 tacoAllergens.addAll(ing.getAllergens());
             }
-
-            // Regla: El picante del taco es el máximo picante de sus ingredientes
             if (ing.getSpiceRank() > maxSpiceRank) {
                 maxSpiceRank = ing.getSpiceRank();
             }
