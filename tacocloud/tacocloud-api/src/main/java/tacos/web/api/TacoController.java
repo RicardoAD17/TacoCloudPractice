@@ -1,7 +1,7 @@
 package tacos.web.api;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -20,7 +20,10 @@ import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tacos.Taco;
+import tacos.User;               
 import tacos.data.TacoRepository;
+import tacos.data.UserRepository;
+import tacos.service.TacoOfTheDayService;
 import tacos.service.TacoValidationService;
 
 @RestController
@@ -30,10 +33,14 @@ public class TacoController {
   private TacoRepository tacoRepo;
   private TacoClassificationService tacoClassificationService;
   private final TacoValidationService validationService;
-  public TacoController(TacoRepository tacoRepo,TacoClassificationService tacoClassificationService,TacoValidationService validationService) {
+  private final TacoOfTheDayService tacoOfTheDayService;
+  private final UserRepository userRepo;
+  public TacoController(TacoRepository tacoRepo,TacoClassificationService tacoClassificationService,TacoValidationService validationService,TacoOfTheDayService tacoOfTheDayService, UserRepository userRepo) {
     this.tacoRepo = tacoRepo;
     this.tacoClassificationService = tacoClassificationService;
     this.validationService= validationService;
+    this.tacoOfTheDayService = tacoOfTheDayService;
+    this.userRepo=userRepo;
   }
 
 @GetMapping
@@ -89,5 +96,44 @@ public class TacoController {
           return Mono.just(ResponseEntity.unprocessableEntity()
                   .body(Collections.singletonMap("violations", violations)));
       }
+  }
+  @GetMapping(path = "/today")
+  public Mono<ResponseEntity<Taco>> tacoOfTheDay() {
+      return tacoOfTheDayService.getTacoOfTheDay().
+        map(taco ->ResponseEntity.ok(taco))
+        .defaultIfEmpty(ResponseEntity.notFound().build());
+  }
+  @PostMapping(path = "/{id}/favorite")
+  public Mono<ResponseEntity<Object>> addFavorite(@PathVariable("id") String tacoId) {
+      String fixedUserId = "usuario-fijo-123"; 
+
+      return tacoRepo.findById(tacoId)
+          .flatMap(taco -> userRepo.findById(fixedUserId)
+              .defaultIfEmpty(crearUsuarioFijo(fixedUserId))
+              .flatMap(user -> {
+                  if (user.getFavorites() == null) {
+                      user.setFavorites(new ArrayList<>());
+                  }
+                  
+
+                  boolean alreadyExists = user.getFavorites().stream()
+                          .anyMatch(f -> f.getId() != null && f.getId().equals(taco.getId()));
+                  
+                  if (!alreadyExists) {
+                      user.getFavorites().add(taco);
+                  }
+                  
+                  return userRepo.save(user);
+              })
+          )
+          .map(savedUser -> ResponseEntity.ok().build())
+          .defaultIfEmpty(ResponseEntity.notFound().build());
+  }
+  private User crearUsuarioFijo(String id) {
+      User user = new User();
+      user.setId(id);
+      user.setUsername("invitado");
+      user.setFavorites(new ArrayList<>());
+      return user;
   }
 }

@@ -37,8 +37,7 @@ public class DevelopmentConfig {
         Ingredient jack = saveAnIngredient("JACK", "Monterrey Jack", Type.CHEESE, new java.math.BigDecimal("9.00"), 80);
         Ingredient salsa = saveAnIngredient("SLSA", "Salsa", Type.SAUCE, new java.math.BigDecimal("3.50"), 150);
         Ingredient sourCream = saveAnIngredient("SRCR", "Sour Cream", Type.SAUCE, new java.math.BigDecimal("4.00"), 150);        
-//        UserUDT u = new UserUDT(username, fullname, phoneNumber)
-        
+    
         User savedUser = new User("ricardo_admin", encoder.encode("password"), 
               "Ricardo Almada", "123 North Street", "Cross Roads", "TX", 
               "76227", "123-123-1234", "craig@habuma.com");
@@ -47,7 +46,7 @@ public class DevelopmentConfig {
         User admin = new User("jefe", encoder.encode("password"), 
               "Jefe de Tienda", "123 Admin St", "Cross Roads", "TX", 
               "76227", "111-222-3333", "jefe@habuma.com");
-        admin.setRole("ROLE_ADMIN"); // <-- Le damos el poder
+        admin.setRole("ROLE_ADMIN"); 
         userRepo.save(admin).block();
         if (savedUser != null) {
             paymentMethodRepo.save(new PaymentMethod(savedUser, "tok_falso_habuma_123", "VISA", "1111", "10/25")).block();

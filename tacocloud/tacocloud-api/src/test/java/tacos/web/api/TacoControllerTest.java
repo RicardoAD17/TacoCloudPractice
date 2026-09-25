@@ -48,7 +48,7 @@ public class TacoControllerTest {
             org.mockito.ArgumentMatchers.any(), 
             org.mockito.ArgumentMatchers.any()
         )).thenReturn(reactor.core.publisher.Flux.just(tacoPrueba));
-        TacoController tacoController = new TacoController(mockRepo, mockClassService, mockValService);
+        TacoController tacoController = new TacoController(mockRepo, mockClassService, mockValService,null,null);
         org.springframework.test.web.reactive.server.WebTestClient webTestClient = 
             org.springframework.test.web.reactive.server.WebTestClient.bindToController(tacoController).build();
         webTestClient.get()
@@ -70,7 +70,7 @@ public class TacoControllerTest {
     when(tacoRepo.save(any())).thenReturn(savedTacoMono);
 
     WebTestClient testClient = WebTestClient.bindToController(
-        new TacoController(tacoRepo,null,null)).build();
+        new TacoController(tacoRepo,null,null,null,null)).build();
 
     testClient.post()
         .uri("/api/tacos")
@@ -109,7 +109,7 @@ public class TacoControllerTest {
         TacoClassificationService mockClassService = org.mockito.Mockito.mock(TacoClassificationService.class);
         TacoValidationService mockValService = org.mockito.Mockito.mock(TacoValidationService.class);
 
-        TacoController tacoController = new TacoController(mockRepo, mockClassService, mockValService);
+        TacoController tacoController = new TacoController(mockRepo, mockClassService, mockValService, null,null);
         org.springframework.test.web.reactive.server.WebTestClient webTestClient = 
             org.springframework.test.web.reactive.server.WebTestClient.bindToController(tacoController).build();
         Taco invalidTaco = new Taco();
@@ -125,5 +125,34 @@ public class TacoControllerTest {
             .expectBody()
             .jsonPath("$.violations").isArray()
             .jsonPath("$.violations[0]").isEqualTo("MIN_INGREDIENTS_NOT_MET");
+    }
+    @Test
+    public void addFavorite_Returns200_WhenTacoExists() {
+        tacos.data.TacoRepository mockTacoRepo = org.mockito.Mockito.mock(tacos.data.TacoRepository.class);
+        tacos.data.UserRepository mockUserRepo = org.mockito.Mockito.mock(tacos.data.UserRepository.class);
+        TacoClassificationService mockClassService = org.mockito.Mockito.mock(TacoClassificationService.class);
+        TacoValidationService mockValService = org.mockito.Mockito.mock(TacoValidationService.class);
+        tacos.service.TacoOfTheDayService mockTotdService = org.mockito.Mockito.mock(tacos.service.TacoOfTheDayService.class);
+        Taco taco = new Taco();
+        taco.setId("taco-1");
+        
+        tacos.User user = new tacos.User();
+        user.setId("usuario-fijo-123");
+        user.setFavorites(new java.util.ArrayList<>());
+
+        org.mockito.Mockito.when(mockTacoRepo.findById("taco-1"))
+            .thenReturn(reactor.core.publisher.Mono.just(taco));
+        org.mockito.Mockito.when(mockUserRepo.findById("usuario-fijo-123"))
+            .thenReturn(reactor.core.publisher.Mono.just(user));
+        org.mockito.Mockito.when(mockUserRepo.save(org.mockito.ArgumentMatchers.any(tacos.User.class)))
+            .thenReturn(reactor.core.publisher.Mono.just(user));
+
+        TacoController controller = new TacoController(mockTacoRepo, mockClassService, mockValService, mockTotdService, mockUserRepo);
+        org.springframework.test.web.reactive.server.WebTestClient client = 
+            org.springframework.test.web.reactive.server.WebTestClient.bindToController(controller).build();
+        client.post()
+            .uri("/api/tacos/taco-1/favorite")
+            .exchange()
+            .expectStatus().isOk();
     }
 }

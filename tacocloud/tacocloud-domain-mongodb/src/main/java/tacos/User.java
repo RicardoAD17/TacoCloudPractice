@@ -1,7 +1,9 @@
 package tacos;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -14,7 +16,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor(access=AccessLevel.PRIVATE, force=true)
+@NoArgsConstructor(access=AccessLevel.PUBLIC, force=true)
 @Document
 public class User implements UserDetails {
 
@@ -31,9 +33,10 @@ public class User implements UserDetails {
   private String zip;
   private String phoneNumber;
   private String email;
+
   
   private String role = "ROLE_USER";
-
+  private List<Taco> favorites = new ArrayList<>();
   // Constructor que utiliza tu DevelopmentConfig
   public User(String username, String password, String fullname, String street, 
               String city, String state, String zip, String phoneNumber, String email) {
