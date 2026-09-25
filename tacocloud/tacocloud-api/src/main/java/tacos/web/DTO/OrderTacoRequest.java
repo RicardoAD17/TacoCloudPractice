@@ -22,7 +22,9 @@ public class OrderTacoRequest {
     private String deliveryState;
     @NotBlank(message="el codigo postal es obligatorio")
     private String deliveryZip;
-    private List<IngredientRequest> tacos;
     @NotBlank(message="Un token de pago es requerido")
     private String paymentToken;
+
+    private List<TacoRequest> tacos;
+    private String discountCode;
 }

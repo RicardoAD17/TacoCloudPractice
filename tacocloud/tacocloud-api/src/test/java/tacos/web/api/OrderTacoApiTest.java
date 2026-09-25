@@ -43,6 +43,8 @@ public class OrderTacoApiTest {
         OrderRepository repo = Mockito.mock(OrderRepository.class);
         OrderMessagingService orderMessaging = Mockito.mock(OrderMessagingService.class);
         EmailOrderService emailService = Mockito.mock(EmailOrderService.class);
+        OrderPricingService orderPricingService= Mockito.mock(OrderPricingService.class);
+        InventoryService inventoryService= Mockito.mock(InventoryService.class);
         OrderMapper orderMapper =
             new OrderMapper();
         Mockito.when(repo.findById("123"))
@@ -57,7 +59,9 @@ public class OrderTacoApiTest {
                     repo,
                     orderMessaging,
                     emailService,
-                    orderMapper
+                    orderMapper,
+                    orderPricingService,
+                    inventoryService
                 )
             )
             .controllerAdvice(new GlobalExceptionHandler())
@@ -152,14 +156,18 @@ public class OrderTacoApiTest {
 
         Mockito.when(repo.save(Mockito.any(TacoOrder.class)))
             .thenReturn(Mono.just(ordenOriginal));
-
+        OrderPricingService orderPricingService= Mockito.mock(OrderPricingService.class);
+        InventoryService inventoryService= Mockito.mock(InventoryService.class);
+        
         WebTestClient testClient =
             WebTestClient.bindToController(
                 new OrderApiController(
                     repo,
                     orderMessaging,
                     emailService,
-                    orderMapper
+                    orderMapper,
+                    orderPricingService,
+                    inventoryService
                 )
             )
             .controllerAdvice(new GlobalExceptionHandler())
@@ -246,7 +254,8 @@ public class OrderTacoApiTest {
 
         Mockito.when(repo.findById("111"))
             .thenReturn(Mono.empty());
-
+        OrderPricingService orderPricingService= Mockito.mock(OrderPricingService.class);
+         InventoryService inventoryService= Mockito.mock(InventoryService.class);
         User mockUser = new User(
             "testuser",
             "password",
@@ -265,7 +274,9 @@ public class OrderTacoApiTest {
                     repo,
                     orderMessaging,
                     emailService,
-                    orderMapper
+                    orderMapper,
+                    orderPricingService,
+                    inventoryService
                 )
             )
             .controllerAdvice(new GlobalExceptionHandler())

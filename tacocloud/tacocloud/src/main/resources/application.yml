@@ -7,10 +7,38 @@ taco:
   orders:
     pageSize: 10
 
-
-  discount:
+tacocloud:
+  clock:
+    zone: America/Mexico_City
+  physics:
+    min-ingredients: 2
+    max-ingredients: 12
+    drink-required-min-spice-rank: 4
+    drink-types:
+      - DRINK
+    vegan-wrap-forbids-meat: true
+  search:
+    default-size: 20
+    max-size: 50
+  promotions:
     codes:
-      abcdef: 10
+      TACO20:
+        type: PERCENTAGE
+        value: 20
+        max-discount: 50.00
+        valid-from: "2026-01-01T00:00:00"
+        valid-until: "2027-12-31T23:59:59"
+      MINUS10:
+        type: FIXED
+        value: 10.00
+        min-purchase: 30.00
+        valid-from: "2026-01-01T00:00:00"
+        valid-until: "2027-12-31T23:59:59"
+      VENCIDO50:
+        type: PERCENTAGE
+        value: 50
+        valid-from: "2024-01-01T00:00:00"
+        valid-until: "2024-12-31T23:59:59"
 
 
 
@@ -100,3 +128,6 @@ logging:
   level:
     tacos: WARN
     org.springframework.security: DEBUG
+library: resttemplate
+useLombok: true
+dateLibrary: java8

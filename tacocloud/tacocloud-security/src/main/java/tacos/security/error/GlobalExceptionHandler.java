@@ -75,14 +75,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
         public ResponseEntity<ApiProblem> handleAllUncaughtExceptions(
         Exception ex, 
-        javax.servlet.http.HttpServletRequest request) { // <-- Cambio clave compatible con Tomcat
+        javax.servlet.http.HttpServletRequest request) { 
 
-        ApiProblem problem = new ApiProblem();
-        problem.setTitle("Error Interno del Servidor");
-        problem.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        problem.setDetail(ex.getMessage());
-        problem.setInstance(request.getRequestURI());
-        problem.setCode("ERR_INTERNAL_ERROR");
+        ApiProblem problem = ApiProblem.builder()
+                .title("Error Interno del Servidor")
+                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
+                .detail(ex.getMessage())
+                .instance(request.getRequestURI())
+                .code("ERR_INTERNAL_ERROR")
+                .build(); 
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
         }

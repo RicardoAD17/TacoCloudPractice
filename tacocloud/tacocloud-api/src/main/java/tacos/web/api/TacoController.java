@@ -19,14 +19,16 @@ import tacos.data.TacoRepository;
 @CrossOrigin(origins="http://localhost:8080")
 public class TacoController {
   private TacoRepository tacoRepo;
-
-  public TacoController(TacoRepository tacoRepo) {
+  private TacoClassificationService tacoClassificationService;
+  public TacoController(TacoRepository tacoRepo,TacoClassificationService tacoClassificationService) {
     this.tacoRepo = tacoRepo;
+    this.tacoClassificationService = tacoClassificationService;
   }
 
-  @GetMapping(params="recent")
+ @GetMapping(params="recent")
   public Flux<Taco> recentTacos() {
-    return tacoRepo.findAll().take(12);
+    return tacoRepo.findAll().take(12)
+        .doOnNext(tacoClassificationService::classifyTaco); 
   }
 
   @PostMapping(consumes = "application/json")

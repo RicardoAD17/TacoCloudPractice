@@ -27,7 +27,7 @@ public class DevelopmentConfig {
     return new CommandLineRunner() {
       @Override
       public void run(String... args) throws Exception {
-       Ingredient flourTortilla = saveAnIngredient("FLTO", "Flour Tortilla", Type.WRAP, new java.math.BigDecimal("10.00"), 100);
+        Ingredient flourTortilla = saveAnIngredient("FLTO", "Flour Tortilla", Type.WRAP, new java.math.BigDecimal("10.00"), 100);
         Ingredient cornTortilla = saveAnIngredient("COTO", "Corn Tortilla", Type.WRAP, new java.math.BigDecimal("12.00"), 100);
         Ingredient groundBeef = saveAnIngredient("GRBF", "Ground Beef", Type.PROTEIN, new java.math.BigDecimal("25.50"), 50);
         Ingredient carnitas = saveAnIngredient("CARN", "Carnitas", Type.PROTEIN, new java.math.BigDecimal("28.00"), 40);
@@ -68,7 +68,7 @@ public class DevelopmentConfig {
         Taco taco3 = new Taco();
         taco3.setId("TACO3");
         taco3.setName("Veg-Out");
-        taco3.setIngredients(Arrays.asList(flourTortilla, cornTortilla, tomatoes, lettuce, salsa));
+        taco3.setIngredients(Arrays.asList(cornTortilla, tomatoes, lettuce, salsa));
         tacoRepo.save(taco3).subscribe();
 
       }

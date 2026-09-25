@@ -42,7 +42,7 @@ public class TacoControllerTest {
     when(tacoRepo.findAll()).thenReturn(tacoFlux);
 
     WebTestClient testClient = WebTestClient.bindToController(
-        new TacoController(tacoRepo))
+        new TacoController(tacoRepo,null))
         .build();
 
     testClient.get().uri("/api/tacos?recent")
@@ -71,7 +71,7 @@ public class TacoControllerTest {
     when(tacoRepo.save(any())).thenReturn(savedTacoMono);
 
     WebTestClient testClient = WebTestClient.bindToController(
-        new TacoController(tacoRepo)).build();
+        new TacoController(tacoRepo,null)).build();
 
     testClient.post()
         .uri("/api/tacos")
@@ -88,8 +88,19 @@ public class TacoControllerTest {
     taco.setId(number != null ? number.toString(): "TESTID");
     taco.setName("Taco " + number);
     List<Ingredient> ingredients = new ArrayList<>();
-    ingredients.add(new Ingredient("INGA", "Ingredient A", Type.WRAP, java.math.BigDecimal.ZERO, true, 0, 10, null));
-    ingredients.add(new Ingredient("INGB", "Ingredient B", Type.PROTEIN, java.math.BigDecimal.ZERO, true, 0, 10, null));
+    Ingredient ingA = new Ingredient();
+    ingA.setId("INGA");
+    ingA.setName("Ingredient A");
+    ingA.setType(Type.WRAP);
+    
+    Ingredient ingB = new Ingredient();
+    ingB.setId("INGB");
+    ingB.setName("Ingredient B");
+    ingB.setType(Type.PROTEIN);
+    
+    ingredients.add(ingA);
+    ingredients.add(ingB);
+    
     taco.setIngredients(ingredients);
     return taco;
   }

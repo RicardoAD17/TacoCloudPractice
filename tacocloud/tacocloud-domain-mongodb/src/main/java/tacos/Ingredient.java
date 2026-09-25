@@ -1,6 +1,8 @@
 package tacos;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.Min;
@@ -14,10 +16,11 @@ import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import tacos.model.Allergen;
 
 @Data
 @AllArgsConstructor
-@NoArgsConstructor(access=AccessLevel.PRIVATE, force=true)
+@NoArgsConstructor(access = AccessLevel.PUBLIC, force = true)
 @Document
 public class Ingredient {
 
@@ -37,8 +40,13 @@ public class Ingredient {
   @Version 
   private Long version;
   public enum Type {
-    WRAP, PROTEIN, VEGGIES, CHEESE, SAUCE
+    WRAP, BOWL, PROTEIN, VEGGIES, CHEESE, SAUCE, DRINK
   }
+  private boolean vegan;
+  private boolean vegetarian;
+  private boolean glutenFree;
+  private List<Allergen> allergens = new ArrayList<>();
+  private int spiceRank = 0;
   public Ingredient(String id, String name, Type type,BigDecimal unitPrice,int stockOnHand){
     this.id = id;
     this.name = name;

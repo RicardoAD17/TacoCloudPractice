@@ -35,6 +35,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         .antMatchers("/h2-console/**").permitAll() 
 
         .antMatchers(HttpMethod.GET, "/api/ingredients/**", "/api/tacos/**").permitAll()
+        .antMatchers(HttpMethod.POST, "/api/tacos", "/api/tacos/validate").permitAll()
         .antMatchers(HttpMethod.POST, "/api/ingredients/**").hasRole("ADMIN")
         .antMatchers(HttpMethod.PUT, "/api/ingredients/**").hasRole("ADMIN")
         .antMatchers(HttpMethod.DELETE, "/api/ingredients/**").hasRole("ADMIN")

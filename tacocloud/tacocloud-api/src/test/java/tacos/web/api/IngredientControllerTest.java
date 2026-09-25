@@ -38,7 +38,7 @@ public class IngredientControllerTest {
       controller = new IngredientController(repo, mapper); 
 
       client = WebTestClient.bindToController(controller)
-      .controllerAdvice(new GlobalExceptionHandler()) // <--- ¡Agrega esta línea aquí!
+      .controllerAdvice(new GlobalExceptionHandler())
       .argumentResolvers(configurer -> configurer.addCustomResolver(new HandlerMethodArgumentResolver() {
           @Override
           public boolean supportsParameter(MethodParameter parameter) {
@@ -53,10 +53,22 @@ public class IngredientControllerTest {
       .baseUrl("/api/ingredients")
       .build();
     }
+    
+    // Método auxiliar para crear ingredientes de prueba sin romper por el constructor
+    private Ingredient crearIngrediente(String id, String name, Type type) {
+        Ingredient ing = new Ingredient();
+        ing.setId(id);
+        ing.setName(name);
+        ing.setType(type);
+        ing.setUnitPrice(java.math.BigDecimal.ZERO);
+        return ing;
+    }
+
     @Test
     public void testUpdateIngredients_Exito() {
-       Ingredient ingViejo = new Ingredient("FLTO", "Tortilla Normal", Type.WRAP, java.math.BigDecimal.ZERO, true, 0, 10, null);
-        Ingredient ingGuardado = new Ingredient("FLTO", "Tortilla Gigante", Type.WRAP, java.math.BigDecimal.ZERO, true, 0, 10, null);
+        Ingredient ingViejo = crearIngrediente("FLTO", "Tortilla Normal", Type.WRAP);
+        Ingredient ingGuardado = crearIngrediente("FLTO", "Tortilla Gigante", Type.WRAP);
+        
         IngredientRequest reqNuevo = new IngredientRequest();
         reqNuevo.setId("FLTO");
         reqNuevo.setName("Tortilla Gigante");
@@ -99,7 +111,8 @@ public class IngredientControllerTest {
 
    @Test
     public void testPostIngredients_exito(){
-        Ingredient newIngredient = new Ingredient("TOTA", "Tortilla Mini", Type.WRAP, java.math.BigDecimal.ZERO, true, 0, 10, null);
+        Ingredient newIngredient = crearIngrediente("TOTA", "Tortilla Mini", Type.WRAP);
+        
         IngredientRequest reqNuevo = new IngredientRequest();
         reqNuevo.setId("TOTA");
         reqNuevo.setName("Tortilla Mini");
@@ -126,7 +139,6 @@ public class IngredientControllerTest {
 
         client.post().contentType(MediaType.APPLICATION_JSON)
         .bodyValue(reqNuevo).exchange()
-        // ¡Validamos que devuelva 422 y que responda con el formato del escudo!
         .expectStatus().isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY)
         .expectBody()
         .jsonPath("$.title").isEqualTo("Error de Validación")

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,15 +42,19 @@ public class OrderApiController {
   private final OrderMessagingService orderMessages;
   private final OrderMapper orderMapper;
   private final EmailOrderService emailOrderService;
-
+  private final OrderPricingService pricingService;
+  private final InventoryService inventoryService;
   public OrderApiController(OrderRepository repo,
                             OrderMessagingService orderMessages,
                             EmailOrderService emailOrderService,
-                            OrderMapper orderMapper) {
+                            OrderMapper orderMapper,OrderPricingService pricingService,
+                            InventoryService inventoryService) {
     this.repo = repo;
     this.orderMessages = orderMessages;
     this.emailOrderService = emailOrderService;
     this.orderMapper = orderMapper;
+    this.pricingService = pricingService;
+    this.inventoryService = inventoryService;
   }
 
   @GetMapping(produces="application/json")
@@ -62,15 +67,38 @@ public class OrderApiController {
               .map(orderMapper::toResponse);
   }
 
-  @PostMapping(consumes="application/json")
-  public Mono<ResponseEntity<OrderResponse>> postOrder(@Valid @RequestBody OrderTacoRequest order,@AuthenticationPrincipal User user) {
-      TacoOrder orderToSave = orderMapper.toDomain(order);
-      orderToSave.setUser(user);
-      orderToSave.setPaymentToken(order.getPaymentToken()); 
-      return repo.save(orderToSave)
-                .map(savedOrder -> ResponseEntity.status(HttpStatus.CREATED).body(orderMapper.toResponse(savedOrder)));
-  }
+ @PostMapping(consumes="application/json")
+  public Mono<ResponseEntity<OrderResponse>> postOrder(
+          @Valid @RequestBody OrderTacoRequest orderRequest, 
+          @AuthenticationPrincipal User user,
+          @RequestHeader(value = "X-Idempotency-Key", required = false) String idempotencyKey) {
 
+      final String finalKey = (idempotencyKey == null || idempotencyKey.isEmpty()) 
+                              ? java.util.UUID.randomUUID().toString() 
+                              : idempotencyKey;
+
+      TacoOrder orderToSave = orderMapper.toDomain(orderRequest);
+      orderToSave.setUser(user);
+      orderToSave.setPaymentToken(orderRequest.getPaymentToken()); 
+
+      // 1. Primero calculamos precios y aplicamos cupones (TC-14 y TC-15)
+      return pricingService.calculateOrderTotals(orderToSave)
+              .flatMap(calculatedOrder -> 
+                  // 2. Segundo, intentamos reservar el inventario de manera atómica (TC-16)
+                  inventoryService.reserveStock(calculatedOrder, finalKey)
+                      .thenReturn(calculatedOrder)
+              )
+              .flatMap(repo::save) // 3. Si todo lo anterior triunfa, guardamos la orden
+              .map(savedOrder -> ResponseEntity.status(HttpStatus.CREATED).body(orderMapper.toResponse(savedOrder)))
+              .onErrorResume(ex -> {
+                  // Si el inventario falla (o lanza conflicto), devolvemos el error adecuado que propagará el 409/422
+                  if (ex instanceof org.springframework.web.server.ResponseStatusException) {
+                      return Mono.error(ex);
+                  }
+                  return Mono.error(new org.springframework.web.server.ResponseStatusException(
+                          HttpStatus.CONFLICT, "Error al procesar inventario: " + ex.getMessage()));
+              });
+  }
   @PostMapping(path="fromEmail", consumes="application/json")
   public Mono<ResponseEntity<OrderResponse>> postOrderFromEmail(@RequestBody Mono<EmailOrder> emailOrder) {
       return emailOrderService.convertEmailOrderToDomainOrder(emailOrder)
