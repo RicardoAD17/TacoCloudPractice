@@ -6,17 +6,19 @@ import java.util.Date;
 import java.util.List;
 
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import lombok.Data;
+import tacos.model.OrderStatus;
 
 @Data
 @Document
 public class TacoOrder implements Serializable {
   private static final long serialVersionUID = 1L;
-
+  
   @Id
   private String id;
   private Date placedAt = new Date();
@@ -30,7 +32,13 @@ public class TacoOrder implements Serializable {
   private String deliveryCity;
 
   private String deliveryState;
+  
+  private String cookId;
 
+  private OrderStatus status= OrderStatus.CREATED;
+  private List<OrderStateTransition> statusHistory= new ArrayList<>();
+  @Version
+    private Long version;
   private String deliveryZip;
   @JsonIgnore
   private String paymentToken;
