@@ -108,6 +108,43 @@ http://maven.apache.org/xsd/maven-4.0.0.xsd">
       <version>4.4.3</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+        <groupId>sia</groupId>
+        <artifactId>tacocloud-messaging-contract</artifactId>
+        <version>${project.version}</version>
+    </dependency>
+      <dependency>
+            <groupId>sia</groupId>
+            <artifactId>tacocloud-messaging-noop</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>sia</groupId>
+            <artifactId>tacocloud-messaging-jms</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>sia</groupId>
+            <artifactId>tacocloud-messaging-rabbitmq</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>sia</groupId>
+            <artifactId>tacocloud-messaging-kafka</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>1.17.6</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>mongodb</artifactId>
+            <version>1.17.6</version>
+            <scope>test</scope>
+        </dependency>
   </dependencies>
 
   <!-- tag::buildInfoGoal[] -->

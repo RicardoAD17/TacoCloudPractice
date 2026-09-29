@@ -10,10 +10,10 @@ import org.springframework.jms.support.converter.MappingJackson2MessageConverter
 import tacos.TacoOrder;
 
 @Configuration
-public class MessagingConfig {
+public class JmsMessagingConfig {
 
   @Bean
-  public MappingJackson2MessageConverter messageConverter() {
+  public MappingJackson2MessageConverter jmsMessageConverter() {
     MappingJackson2MessageConverter messageConverter =
                             new MappingJackson2MessageConverter();
     messageConverter.setTypeIdPropertyName("_typeId");

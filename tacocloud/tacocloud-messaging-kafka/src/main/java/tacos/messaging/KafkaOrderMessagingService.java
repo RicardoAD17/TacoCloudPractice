@@ -1,25 +1,27 @@
 package tacos.messaging;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
-import tacos.TacoOrder;
+
+import tacos.messaging.contract.OrderEvent;
+import tacos.messaging.contract.OrderMessagingService; 
 
 @Service
-public class KafkaOrderMessagingService
-                                  implements OrderMessagingService {
-  
-  private KafkaTemplate<String, TacoOrder> kafkaTemplate;
-  
+@ConditionalOnProperty(name = "tacocloud.messaging.transport", havingValue = "kafka")
+public class KafkaOrderMessagingService implements OrderMessagingService {
+
+  private final KafkaTemplate<String, OrderEvent> kafkaTemplate;
+
   @Autowired
-  public KafkaOrderMessagingService(
-          KafkaTemplate<String, TacoOrder> kafkaTemplate) {
+  public KafkaOrderMessagingService(KafkaTemplate<String, OrderEvent> kafkaTemplate) {
     this.kafkaTemplate = kafkaTemplate;
   }
-  
+
   @Override
-  public void sendOrder(TacoOrder order) {
-    kafkaTemplate.send("tacocloud.orders.topic", order);
+  public void sendOrderEvent(OrderEvent event) {
+    kafkaTemplate.send("tacocloud.orders.topic", event);
   }
   
 }

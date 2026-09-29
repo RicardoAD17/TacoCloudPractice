@@ -17,11 +17,13 @@ import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-
+import org.springframework.boot.test.mock.mockito.MockBean;
+import tacos.messaging.OrderMessagingService;
 @ExtendWith(SpringExtension.class)
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 public class DesignTacoControllerBrowserTest {
-
+  @MockBean
+    private OrderMessagingService messageService;
   private static HtmlUnitDriver browser;
 
   @LocalServerPort

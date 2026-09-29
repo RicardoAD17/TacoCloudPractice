@@ -17,11 +17,8 @@ import tacos.data.TacoRepository;
 @Service
 @ManagedResource
 public class TacoCounter
-/*
-       extends AbstractRepositoryEventListener<Taco> {
-*/
-       extends AbstractRepositoryEventListener<Taco>
-       implements NotificationPublisherAware {
+  extends AbstractRepositoryEventListener<Taco>
+  implements NotificationPublisherAware {
 
   private AtomicLong counter;
   private NotificationPublisher np;

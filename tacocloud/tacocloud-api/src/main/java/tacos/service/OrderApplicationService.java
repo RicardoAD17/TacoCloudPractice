@@ -1,32 +1,47 @@
 package tacos.service;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; 
 import reactor.core.publisher.Mono;
 import tacos.Ingredient;
+import tacos.OutboxEvent; 
 import tacos.Taco;
 import tacos.TacoOrder;
 import tacos.User;
 import tacos.data.IngredientRepository;
 import tacos.data.OrderRepository;
+import tacos.data.OutboxEventRepository; 
 import tacos.web.DTO.ReorderRequest;
 import tacos.web.DTO.ReorderResponse;
+
+import tacos.messaging.contract.OrderEvent; 
+import tacos.messaging.contract.OrderEventPayload; 
+import tacos.messaging.contract.OrderEventType; 
+
+import com.fasterxml.jackson.databind.ObjectMapper; 
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID; 
 import java.util.stream.Collectors;
-
 @Service
 public class OrderApplicationService {
 
     private final OrderRepository orderRepo;
-    private final IngredientRepository ingredientRepo; 
-
-    public OrderApplicationService(OrderRepository orderRepo, IngredientRepository ingredientRepo) {
+    private final IngredientRepository ingredientRepo;
+    private final OutboxEventRepository outboxRepo;
+    private final ObjectMapper objectMapper;
+    public OrderApplicationService(OrderRepository orderRepo, 
+                                   IngredientRepository ingredientRepo,
+                                   OutboxEventRepository outboxRepo,
+                                   ObjectMapper objectMapper) {
         this.orderRepo = orderRepo;
         this.ingredientRepo = ingredientRepo;
+        this.outboxRepo = outboxRepo;
+        this.objectMapper = objectMapper;
     }
-
+    @Transactional
     public Mono<ReorderResponse> reorder(String historicalOrderId, User user, ReorderRequest request) {
 
         return orderRepo.findByIdAndUser_Id(historicalOrderId, user.getId())
@@ -102,12 +117,44 @@ public class OrderApplicationService {
                             newOrder.setDeliveryState(oldOrder.getDeliveryState());
                             newOrder.setDeliveryZip(oldOrder.getDeliveryZip());
                             newOrder.setTacos(newTacos); 
-                            
-                            return orderRepo.save(newOrder).map(savedOrder -> {
-                                response.setStatus("CONFIRMED");
-                                response.setNewOrderId(savedOrder.getId());
-                                response.setWarnings(warnings);
-                                return response;
+                            return orderRepo.save(newOrder).flatMap(savedOrder -> {
+                                OrderEventPayload payload = new OrderEventPayload();
+                                payload.setOrderId(savedOrder.getId());
+                                payload.setPlacedAt(savedOrder.getPlacedAt());
+                                payload.setDeliveryName(savedOrder.getDeliveryName());
+                                payload.setStatus("NEW");
+                                payload.setTacoNames(savedOrder.getTacos().stream()
+                                        .map(Taco::getName)
+                                        .collect(Collectors.toList()));
+
+                               OrderEvent orderEvent = new OrderEvent();
+
+                                orderEvent.setEventId(UUID.randomUUID().toString());
+                                orderEvent.setCorrelationId(UUID.randomUUID().toString()); 
+                                orderEvent.setVersion("v1");
+                                orderEvent.setEventType(tacos.messaging.contract.OrderEventType.CREATED);
+                                orderEvent.setOccurredAt(new Date());
+                                orderEvent.setPayload(payload);
+
+                                OutboxEvent outboxEntry = new OutboxEvent();
+                                outboxEntry.setEventId(orderEvent.getEventId());
+                                outboxEntry.setVersion("v1");
+                                outboxEntry.setStatus("NEW");
+                                outboxEntry.setAttempts(0);
+                                outboxEntry.setCreatedAt(new Date());
+                                outboxEntry.setUpdatedAt(new Date());
+
+                                try {
+                                    outboxEntry.setPayload(objectMapper.writeValueAsString(orderEvent));
+                                } catch (Exception e) {
+                                    return Mono.error(new RuntimeException("Error serializando el Outbox Event", e));
+                                }
+                                return outboxRepo.save(outboxEntry).map(savedOutbox -> {
+                                    response.setStatus("CONFIRMED");
+                                    response.setNewOrderId(savedOrder.getId());
+                                    response.setWarnings(warnings);
+                                    return response;
+                                });
                             });
                         });
             });
