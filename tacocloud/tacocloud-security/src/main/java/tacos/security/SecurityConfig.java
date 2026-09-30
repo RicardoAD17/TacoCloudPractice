@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web
 import org.springframework.security.config.annotation.web
                         .configuration.WebSecurityConfigurerAdapter;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -23,22 +24,34 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
   
   @Autowired
   private UserDetailsService userDetailsService;
-  
   @Override
   protected void configure(HttpSecurity http) throws Exception {
     http
+      .cors()
+      .and()
       .authorizeRequests()
-        .antMatchers(HttpMethod.OPTIONS).permitAll() // needed for Angular/CORS
-        .antMatchers(HttpMethod.POST, "/api/ingredients").permitAll()
-        .antMatchers("/api/tacos/**", "/api/orders/**")
-            .permitAll()
-            //.access("hasRole('ROLE_USER')")
-        .antMatchers(HttpMethod.PATCH, "/api/ingredients").permitAll()
-        .antMatchers("/**").access("permitAll")
+        .antMatchers(HttpMethod.OPTIONS).permitAll() 
+        .antMatchers(HttpMethod.POST, "/api/users", "/register").permitAll() 
+        .antMatchers("/h2-console/**").permitAll() 
+
+        .antMatchers(HttpMethod.GET, "/api/ingredients/**", "/api/tacos/**").permitAll()
+        .antMatchers(HttpMethod.POST, "/api/tacos", "/api/tacos/validate").permitAll()
+        .antMatchers(HttpMethod.POST, "/api/ingredients/**").hasRole("ADMIN")
+        .antMatchers(HttpMethod.PUT, "/api/ingredients/**").hasRole("ADMIN")
+        .antMatchers(HttpMethod.DELETE, "/api/ingredients/**").hasRole("ADMIN")
+        .antMatchers(HttpMethod.PATCH, "/api/ingredients/**").hasRole("ADMIN")
+        .antMatchers("/api/orders/**").hasAnyRole("USER", "ADMIN")
+        .antMatchers("/api/payment-methods/**").hasAnyRole("USER","ADMIN") 
+        .antMatchers("/api/kitchen/**").hasAnyRole("KITCHEN", "ADMIN")
+        .antMatchers("/actuator/health").permitAll()
+        .antMatchers("/actuator/**").hasRole("ADMIN")
+        .antMatchers("/data-api/**").hasRole("ADMIN")
+        .anyRequest().authenticated()
         
       .and()
         .formLogin()
           .loginPage("/login")
+          .permitAll() 
           
       .and()
         .httpBasic()
@@ -47,34 +60,26 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
       .and()
         .logout()
           .logoutSuccessUrl("/")
-          
+          .permitAll()    
       .and()
         .csrf()
-          .ignoringAntMatchers("/h2-console/**", "/api/**")
-
-      // Allow pages to be loaded in frames from the same origin; needed for H2-Console
+          .ignoringAntMatchers("/h2-console/**", "/api/**", "/actuator/**")
       .and()  
         .headers()
           .frameOptions()
-            .sameOrigin()
-      ;
+            .sameOrigin();
   }
-
   @Bean
   public PasswordEncoder encoder() {
-//    return new StandardPasswordEncoder("53cr3t");
-    return NoOpPasswordEncoder.getInstance();
+    return PasswordEncoderFactories.createDelegatingPasswordEncoder(); 
   }
   
   
   @Override
-  protected void configure(AuthenticationManagerBuilder auth)
-      throws Exception {
-
-    auth
-      .userDetailsService(userDetailsService)
-      .passwordEncoder(encoder());
-    
-  }
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+      auth
+        .userDetailsService(userDetailsService)
+        .passwordEncoder(encoder());
+    }
 
 }

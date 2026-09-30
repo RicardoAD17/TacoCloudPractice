@@ -4,6 +4,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import tacos.TacoOrder;
 import tacos.User;
 
@@ -12,5 +13,6 @@ public interface OrderRepository
 
   Flux<TacoOrder> findByUserOrderByPlacedAtDesc(
           User user, Pageable pageable);
-
+        Flux<TacoOrder> findByUser_id(String userId, Pageable pageable);
+        Mono<TacoOrder> findByIdAndUser_Id(String id,String userId);
 }

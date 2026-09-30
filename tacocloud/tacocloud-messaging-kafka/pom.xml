@@ -35,7 +35,11 @@
 			<groupId>org.springframework.kafka</groupId>
 			<artifactId>spring-kafka</artifactId>
 		</dependency>
-
+		<dependency>
+            <groupId>sia</groupId>
+            <artifactId>tacocloud-messaging-contract</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 		<!-- Lombok -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>

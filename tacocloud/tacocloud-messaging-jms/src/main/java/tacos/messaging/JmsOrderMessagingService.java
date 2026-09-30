@@ -4,15 +4,19 @@ import javax.jms.JMSException;
 import javax.jms.Message;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.jms.core.JmsTemplate;
 import org.springframework.stereotype.Service;
 
-import tacos.TacoOrder;
-
+import tacos.messaging.contract.OrderEvent; 
+import tacos.messaging.contract.OrderMessagingService; 
+import org.springframework.context.annotation.Profile;
 @Service
+@ConditionalOnProperty(name = "tacocloud.messaging.transport", havingValue = "jms")
+@Profile("jms")
 public class JmsOrderMessagingService implements OrderMessagingService {
 
-  private JmsTemplate jms;
+  private final JmsTemplate jms;
 
   @Autowired
   public JmsOrderMessagingService(JmsTemplate jms) {
@@ -20,8 +24,8 @@ public class JmsOrderMessagingService implements OrderMessagingService {
   }
 
   @Override
-  public void sendOrder(TacoOrder order) {
-    jms.convertAndSend("tacocloud.order.queue", order,
+  public void sendOrderEvent(OrderEvent event) {
+    jms.convertAndSend("tacocloud.order.queue", event,
         this::addOrderSource);
   }
   
@@ -29,5 +33,4 @@ public class JmsOrderMessagingService implements OrderMessagingService {
     message.setStringProperty("X_ORDER_SOURCE", "WEB");
     return message;
   }
-
 }

@@ -7,12 +7,42 @@ taco:
   orders:
     pageSize: 10
 
-
-  discount:
+tacocloud:
+  clock:
+    zone: America/Mexico_City
+  physics:
+    min-ingredients: 2
+    max-ingredients: 12
+    drink-required-min-spice-rank: 4
+    drink-types:
+      - DRINK
+    vegan-wrap-forbids-meat: true
+  search:
+    default-size: 20
+    max-size: 50
+  promotions:
     codes:
-      abcdef: 10
-
-
+      TACO20:
+        type: PERCENTAGE
+        value: 20
+        max-discount: 50.00
+        valid-from: "2026-01-01T00:00:00"
+        valid-until: "2027-12-31T23:59:59"
+      MINUS10:
+        type: FIXED
+        value: 10.00
+        min-purchase: 30.00
+        valid-from: "2026-01-01T00:00:00"
+        valid-until: "2027-12-31T23:59:59"
+      VENCIDO50:
+        type: PERCENTAGE
+        value: 50
+        valid-from: "2024-01-01T00:00:00"
+        valid-until: "2024-12-31T23:59:59"
+  messaging:
+      transport: rabbit # Opciones: rabbit, kafka, jms, noop
+      destination:
+        order-events: "tacocloud.orders.topic"
 
 #logging:
 #  level:
@@ -23,14 +53,22 @@ taco:
 spring:
 # end::springBootAdminUri[]
 # end::springBootAdminCreds[]
+  main:
+    allow-bean-definition-overriding: true
   application:
     name: taco-cloud
   data:
+    mongodb:
+      auto-index-creation: true
     rest:
       base-path: /data-api
     cassandra:
       keyspace-name: tacocloud
       schema-action: recreate
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    username: ${RABBIT_USER:guest}
+    password: ${RABBIT_PASS:guest}
 # tag::springBootAdminCreds[]
 # tag::springBootAdminUri[]
   boot:
@@ -60,19 +98,26 @@ spring:
 #tag::healthShowDetails[]
 #tag::infoGitModeFull[]
 management:
-#end::infoGitModeFull[]
-#end::healthShowDetails[]
   endpoints:
     web:
       exposure:
-        include: '*'
-#end::exposeAll[]
-        exclude: threaddump,heapdump
-#end::excludeSome[]
-#tag::healthShowDetails[]
+        include: health, metrics, info, prometheus,announcements
   endpoint:
     health:
       show-details: always
+      show-components: always
+      probes:
+        enabled: true
+  health:
+    jms:
+      enabled: false 
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: taco-cloud
 #end::healthShowDetails[]
 #tag::infoGitModeFull[]
   info:
@@ -89,13 +134,20 @@ info:
 
 ---
 spring:
-  profiles: prod
-
+  profiles:
+    active: rabbitmq
+  
   datasource:
     url: jdbc:mysql://localhost/tacocloud
     username: tacouser
     password: tacopassword
 
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [%X{correlationId}] - %msg%n"
   level:
-    tacos: WARN
+    tacos: INFO 
+    org.springframework.security: DEBUG
+library: resttemplate
+useLombok: true
+dateLibrary: java8

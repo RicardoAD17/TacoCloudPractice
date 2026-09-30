@@ -1,0 +1,4 @@
+tacos\messaging\contract\OrderEventPayload.class
+tacos\messaging\contract\OrderEvent.class
+tacos\messaging\contract\OrderEventType.class
+tacos\messaging\contract\OrderMessagingService.class

@@ -2,69 +2,142 @@ package tacos.web.api;
 
 import java.net.URI;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
+import javax.validation.Valid;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import tacos.Ingredient;
 import tacos.data.IngredientRepository;
+import tacos.security.error.ConflictException;
+import tacos.security.error.NotFoundException;
+import tacos.web.DTO.IngredientCatalogoUpdateRequest;
+import tacos.web.DTO.IngredientMapper;
+import tacos.web.DTO.IngredientRequest;
+import tacos.web.DTO.IngredientResponse;
+import tacos.web.DTO.StockAdjustmentRequest;
 
 @RestController
-@RequestMapping(path="/api/ingredients", produces="application/json")
+@RequestMapping(path={"/api/v1/ingredients", "/api/ingredients"}, produces="application/json")
 @CrossOrigin(origins="http://localhost:8080")
 public class IngredientController {
 
-  private IngredientRepository repo;
+  private final IngredientRepository repo;
+  private final IngredientMapper mapper; 
 
-  @Autowired
-  public IngredientController(IngredientRepository repo) {
+  public IngredientController(IngredientRepository repo, IngredientMapper mapper) {
     this.repo = repo;
+    this.mapper = mapper;
   }
 
   @GetMapping
-  public Flux<Ingredient> allIngredients() {
-    return repo.findAll();
+  public Flux<IngredientResponse> allIngredients() { 
+    return repo.findAll()
+               .map(mapper::toResponse); 
   }
 
   @GetMapping("/{id}")
-  public Mono<Ingredient> byId(@PathVariable String id) {
-    return repo.findById(id);
+  public Mono<ResponseEntity<IngredientResponse>> byId(@PathVariable String id) {
+    return repo.findById(id)
+               .map(ingredient -> ResponseEntity.ok(mapper.toResponse(ingredient))) 
+               .defaultIfEmpty(ResponseEntity.notFound().build());
   }
 
   @PutMapping("/{id}")
-  public void updateIngredient(@PathVariable String id, @RequestBody Ingredient ingredient) {
-    if (!ingredient.getId().equals(id)) {
-      throw new IllegalStateException("Given ingredient's ID doesn't match the ID in the path.");
+  public Mono<ResponseEntity<IngredientResponse>> updateIngredient(@PathVariable String id, 
+                                                                   @RequestBody IngredientRequest request) { 
+    if (!request.getId().equals(id)) {
+      return Mono.just(ResponseEntity.badRequest().build());
     }
-    repo.save(ingredient);
+    
+    return repo.findById(id).flatMap(existing -> {
+      existing.setName(request.getName());
+      existing.setType(request.getType());
+      return repo.save(existing);
+    })
+    .map(saved -> ResponseEntity.ok(mapper.toResponse(saved))) 
+    .defaultIfEmpty(ResponseEntity.notFound().build());
   }
 
-  @PostMapping
-  public Mono<ResponseEntity<Ingredient>> postIngredient(@RequestBody Mono<Ingredient> ingredient) {
-    return ingredient
-        .flatMap(repo::save)
-        .map(i -> {
-          HttpHeaders headers = new HttpHeaders();
-          headers.setLocation(URI.create("http://localhost:8080/ingredients/" + i.getId()));
-          return new ResponseEntity<Ingredient>(i, headers, HttpStatus.CREATED);
-        });
+  @PostMapping(consumes = "application/json")
+  public Mono<ResponseEntity<IngredientResponse>> postIngredient(@Valid @RequestBody IngredientRequest request, 
+                                                                 UriComponentsBuilder uriBuilder) {
+    if (request.getId() == null || request.getId().trim().isEmpty() || 
+        request.getName() == null || request.getName().trim().isEmpty() || 
+        request.getType() == null) {
+        return Mono.just(ResponseEntity.badRequest().build());
+    }
+
+    return repo.findById(request.getId())
+        .flatMap(existing -> Mono.<ResponseEntity<IngredientResponse>>error(new ConflictException("Ya existe un ingrediente con el ID:"+request.getId())))
+        .switchIfEmpty(
+            Mono.defer(() -> {
+                Ingredient ingredientToSave = mapper.toDomain(request);
+                
+                return repo.save(ingredientToSave)
+                    .map(saved -> {
+                        URI location = uriBuilder.path("/{id}").buildAndExpand(saved.getId()).toUri();
+                        return ResponseEntity.created(location).body(mapper.toResponse(saved));
+                    });
+            })
+        );
   }
 
-  @DeleteMapping("/{id}")
-  public void deleteIngredient(@PathVariable String id) {
-    repo.deleteById(id);
+    @DeleteMapping("/{id}")
+    public Mono<ResponseEntity<Void>> deleteIngredient(@PathVariable String id) {
+      return repo.findById(id).flatMap(existing -> {
+        return repo.deleteById(id).then(Mono.just(new ResponseEntity<Void>(HttpStatus.NO_CONTENT)));
+      })
+      .switchIfEmpty(Mono.error(new NotFoundException("No se puede eliminar. No se encontro el ingrediente con ID:"+id))); 
+    }
+  // TC-13: Actualizar precio y disponibilidad del catálogo (Solo ADMIN)
+  @PatchMapping(path = "/admin/{id}/catalog", consumes = "application/json")
+  public Mono<ResponseEntity<IngredientResponse>> updateCatalog(
+      @PathVariable("id") String id,
+      @Valid @RequestBody IngredientCatalogoUpdateRequest request) {
+      
+    return repo.findById(id)
+        .flatMap(ingredient -> {
+          // Actualizamos solo si mandan el valor
+          if (request.getUnitPrice() != null) {
+            ingredient.setUnitPrice(request.getUnitPrice());
+          }
+          if (request.getAvailable() != null) {
+            ingredient.setAvailable(request.getAvailable());
+          }
+          return repo.save(ingredient);
+        })
+        .map(saved -> ResponseEntity.ok(mapper.toResponse(saved)))
+        .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
   }
 
+  @PostMapping(path = "/admin/{id}/stock-adjustments", consumes = "application/json")
+  public Mono<ResponseEntity<IngredientResponse>> adjustStock(
+      @PathVariable("id") String id,
+      @Valid @RequestBody StockAdjustmentRequest request) {
+      
+    return repo.findById(id)
+        .flatMap(ingredient -> {
+          int nuevoStock = ingredient.getStockOnHand() + request.getAdjustmentQuantity();
+          
+          if (nuevoStock < 0) {
+            return Mono.error(new IllegalArgumentException("El ajuste provocaría existencias negativas"));
+          }
+          
+          ingredient.setStockOnHand(nuevoStock);
+          if (nuevoStock == 0) {
+            ingredient.setAvailable(false);
+          } else if (!ingredient.isAvailable() && nuevoStock > 0) {
+          
+            ingredient.setAvailable(true); 
+          }
+          
+          return repo.save(ingredient);
+        })
+        .map(saved -> ResponseEntity.ok(mapper.toResponse(saved)))
+        .switchIfEmpty(Mono.just(ResponseEntity.notFound().build()));
+  }
 }
