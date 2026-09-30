@@ -8,16 +8,23 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.web.reactive.BindingContext;
 import org.springframework.web.reactive.result.method.HandlerMethodArgumentResolver;
 import org.springframework.web.server.ServerWebExchange;
-
+import tacos.messaging.contract.OrderMessagingService;
+import tacos.messaging.contract.OrderEvent;
 import reactor.core.publisher.Mono;
 import tacos.TacoOrder;
 import tacos.User;
 import tacos.data.OrderRepository;
-import tacos.messaging.OrderMessagingService;
+import tacos.messaging.contract.OrderMessagingService;
 import tacos.security.error.GlobalExceptionHandler;
 import tacos.web.DTO.ModificacionOrderDTO;
 import tacos.web.DTO.OrderMapper;
-
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Counter;
+import org.springframework.data.domain.Pageable;
+import tacos.data.IdempotencyRecordRepository;
+import org.springframework.util.DigestUtils;
+import org.springframework.dao.DuplicateKeyException;
+import tacos.data.IdempotencyRecord;
 public class OrderTacoApiTest {
     @Test
     public void zipTestValuePatch() {
@@ -45,6 +52,8 @@ public class OrderTacoApiTest {
         EmailOrderService emailService = Mockito.mock(EmailOrderService.class);
         OrderPricingService orderPricingService= Mockito.mock(OrderPricingService.class);
         InventoryService inventoryService= Mockito.mock(InventoryService.class);
+        MeterRegistry meterRegistry = Mockito.mock(MeterRegistry.class);
+        IdempotencyRecordRepository idempotencyRepo= Mockito.mock(IdempotencyRecordRepository.class);
         OrderMapper orderMapper =
             new OrderMapper();
         Mockito.when(repo.findById("123"))
@@ -61,7 +70,9 @@ public class OrderTacoApiTest {
                     emailService,
                     orderMapper,
                     orderPricingService,
-                    inventoryService
+                    inventoryService,
+                    meterRegistry,
+                    idempotencyRepo
                 )
             )
             .controllerAdvice(new GlobalExceptionHandler())
@@ -158,7 +169,8 @@ public class OrderTacoApiTest {
             .thenReturn(Mono.just(ordenOriginal));
         OrderPricingService orderPricingService= Mockito.mock(OrderPricingService.class);
         InventoryService inventoryService= Mockito.mock(InventoryService.class);
-        
+        MeterRegistry meterRegistry = Mockito.mock(MeterRegistry.class);
+        IdempotencyRecordRepository idempotencyRepo= Mockito.mock(IdempotencyRecordRepository.class);
         WebTestClient testClient =
             WebTestClient.bindToController(
                 new OrderApiController(
@@ -167,7 +179,9 @@ public class OrderTacoApiTest {
                     emailService,
                     orderMapper,
                     orderPricingService,
-                    inventoryService
+                    inventoryService,
+                    meterRegistry,
+                    idempotencyRepo
                 )
             )
             .controllerAdvice(new GlobalExceptionHandler())
@@ -256,6 +270,8 @@ public class OrderTacoApiTest {
             .thenReturn(Mono.empty());
         OrderPricingService orderPricingService= Mockito.mock(OrderPricingService.class);
          InventoryService inventoryService= Mockito.mock(InventoryService.class);
+         MeterRegistry meterRegistry = Mockito.mock(MeterRegistry.class);
+         IdempotencyRecordRepository idempotencyRepo= Mockito.mock(IdempotencyRecordRepository.class);
         User mockUser = new User(
             "testuser",
             "password",
@@ -276,7 +292,9 @@ public class OrderTacoApiTest {
                     emailService,
                     orderMapper,
                     orderPricingService,
-                    inventoryService
+                    inventoryService,
+                    meterRegistry, 
+                    idempotencyRepo
                 )
             )
             .controllerAdvice(new GlobalExceptionHandler())

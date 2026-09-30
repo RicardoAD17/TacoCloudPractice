@@ -12,8 +12,9 @@ import org.springframework.boot.autoconfigure.web.servlet.error.ErrorViewResolve
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.servlet.ModelAndView;
-
-@SpringBootApplication
+import org.springframework.scheduling.annotation.EnableScheduling;
+@SpringBootApplication()
+@EnableScheduling
 public class TacoCloudApplication {
 
   public static void main(String[] args) {

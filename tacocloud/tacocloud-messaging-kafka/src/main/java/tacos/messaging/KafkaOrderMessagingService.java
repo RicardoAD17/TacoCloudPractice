@@ -7,8 +7,9 @@ import org.springframework.stereotype.Service;
 
 import tacos.messaging.contract.OrderEvent;
 import tacos.messaging.contract.OrderMessagingService; 
-
+import org.springframework.context.annotation.Profile;
 @Service
+@Profile("kafka")
 @ConditionalOnProperty(name = "tacocloud.messaging.transport", havingValue = "kafka")
 public class KafkaOrderMessagingService implements OrderMessagingService {
 

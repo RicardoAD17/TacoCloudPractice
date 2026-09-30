@@ -24,9 +24,7 @@ spring:
       key-serializer: org.springframework.kafka.support.serializer.JsonSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer    
 ---
-# None of these properties will actually work as configured for this profile.
-# But it is left here as an example of configuring for a production profile
-# that will override the local configuration in the default profile.
+---
 spring:
   profiles: production
     
@@ -38,6 +36,9 @@ spring:
   jackson:
     deserialization:
       FAIL_ON_UNKNOWN_PROPERTIES: true
+
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [%X{correlationId}] - %msg%n"
   level:
     org.springframework.security: DEBUG

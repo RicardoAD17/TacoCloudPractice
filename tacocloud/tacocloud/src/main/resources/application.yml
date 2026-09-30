@@ -58,6 +58,8 @@ spring:
   application:
     name: taco-cloud
   data:
+    mongodb:
+      auto-index-creation: true
     rest:
       base-path: /data-api
     cassandra:
@@ -96,19 +98,26 @@ spring:
 #tag::healthShowDetails[]
 #tag::infoGitModeFull[]
 management:
-#end::infoGitModeFull[]
-#end::healthShowDetails[]
   endpoints:
     web:
       exposure:
-        include: '*'
-#end::exposeAll[]
-        exclude: threaddump,heapdump
-#end::excludeSome[]
-#tag::healthShowDetails[]
+        include: health, metrics, info, prometheus,announcements
   endpoint:
     health:
       show-details: always
+      show-components: always
+      probes:
+        enabled: true
+  health:
+    jms:
+      enabled: false 
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: taco-cloud
 #end::healthShowDetails[]
 #tag::infoGitModeFull[]
   info:
@@ -125,16 +134,19 @@ info:
 
 ---
 spring:
-  profiles: prod
-
+  profiles:
+    active: rabbitmq
+  
   datasource:
     url: jdbc:mysql://localhost/tacocloud
     username: tacouser
     password: tacopassword
 
 logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - [%X{correlationId}] - %msg%n"
   level:
-    tacos: WARN
+    tacos: INFO 
     org.springframework.security: DEBUG
 library: resttemplate
 useLombok: true

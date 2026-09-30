@@ -60,12 +60,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
       .and()
         .logout()
           .logoutSuccessUrl("/")
-          .permitAll() 
-          
+          .permitAll()    
       .and()
         .csrf()
-          .ignoringAntMatchers("/h2-console/**", "/api/**")
-
+          .ignoringAntMatchers("/h2-console/**", "/api/**", "/actuator/**")
       .and()  
         .headers()
           .frameOptions()

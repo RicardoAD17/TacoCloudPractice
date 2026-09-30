@@ -6,14 +6,13 @@ import org.springframework.amqp.core.MessagePostProcessor;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Primary;
 
-import tacos.messaging.contract.OrderEvent; // <-- USA EL CONTRATO DEL TC-27
+import tacos.messaging.contract.OrderEvent; 
 import tacos.messaging.contract.OrderMessagingService;
-
 @Service
-@ConditionalOnProperty(name = "tacocloud.messaging.transport", havingValue = "rabbit")
+@Primary 
 public class RabbitOrderMessagingService implements OrderMessagingService {
   
   private final RabbitTemplate rabbit;
@@ -26,7 +25,7 @@ public class RabbitOrderMessagingService implements OrderMessagingService {
     this.destination = destination;
   }
   
-  @Override // Cumpliendo el contrato del TC-27
+  @Override 
   public void sendOrderEvent(OrderEvent event) {
     rabbit.convertAndSend(destination, event,
         new MessagePostProcessor() {
